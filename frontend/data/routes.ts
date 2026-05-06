@@ -1,0 +1,98 @@
+export interface TrafficRoute {
+  id: string;
+  from: string;
+  to: string;
+  fromLabel: string;
+  toLabel: string;
+  positions: [number, number][];
+  traffic: "low" | "medium" | "high" | "critical";
+  flowPerHour: number;
+}
+
+export const trafficRoutes: TrafficRoute[] = [
+  {
+    id: "r1", from: "centre", to: "sidi_bouzid",
+    fromLabel: "Centre-ville", toLabel: "Sidi Bouzid",
+    positions: [
+      [33.255944, -8.503666],
+      [33.255802, -8.504136],
+      [33.255635, -8.504359],
+      [33.255633, -8.504728],
+      [33.255314, -8.505457],
+      [33.254986, -8.505996],
+      [33.254493, -8.507245],
+      [33.253575, -8.509235],
+      [33.253369, -8.509478],
+      [33.253251, -8.509901],
+      [33.250928, -8.514347],
+      [33.249797, -8.515936],
+      [33.248050, -8.517446],
+      [33.246161, -8.519146],
+      [33.245237, -8.520323],
+      [33.242706, -8.523698],
+      [33.239584, -8.529418],
+      [33.235650, -8.533833],
+      [33.226881, -8.545019],
+      [33.216572, -8.554690],
+      [33.213975, -8.557433],
+      [33.214131, -8.557209],
+    ],
+    traffic: "high", flowPerHour: 850,
+  },
+  {
+    id: "r2", from: "rond_point_marrakech", to: "ensaj",
+    fromLabel: "Rond point Marrakech", toLabel: "Ensaj",
+    positions: [
+      [33.242192, -8.498045],
+      [33.244464, -8.494589],
+      [33.244122, -8.493407],
+      [33.244107, -8.487448],
+      [33.244537, -8.479491],
+      [33.243609, -8.472804],
+      [33.244080, -8.465361],
+      [33.246352, -8.456359],
+      [33.246419, -8.453674],
+      [33.246097, -8.452855],
+      [33.245236, -8.452179],
+      [33.245129, -8.451135],
+      [33.246850, -8.450427],
+      [33.247656, -8.449945],
+      [33.248033, -8.449366],
+      [33.248960, -8.447100],
+      [33.249054, -8.444238],
+      [33.251783, -8.436426],
+    ],
+    traffic: "high", flowPerHour: 850,
+  },
+  {
+    id: "r3", from: "rond_point_marrakech", to: "centre_ville",
+    fromLabel: "Rond point Marrakech", toLabel: "Centre-ville",
+    positions: [
+      [33.242326, -8.498326],
+      [33.243926, -8.498856],
+      [33.246364, -8.499876],
+      [33.247855, -8.500845],
+      [33.248805, -8.501238],
+      [33.251468, -8.502393],
+      [33.254455, -8.503746],
+      [33.255543, -8.503556],
+      [33.255927, -8.503667],
+    ],
+    traffic: "high", flowPerHour: 1850,
+  }
+];
+
+export function getTrafficColor(traffic: TrafficRoute["traffic"]): string {
+  const map = { low: "#22c55e", medium: "#f59e0b", high: "#ef4444", critical: "#dc2626" };
+  return map[traffic];
+}
+
+export function getTrafficWeight(traffic: TrafficRoute["traffic"]): number {
+  const map = { low: 3, medium: 4, high: 6, critical: 8 };
+  return map[traffic];
+}
+
+export function getTrafficLabel(traffic: TrafficRoute["traffic"]): string {
+  const map = { low: "Fluide", medium: "Modéré", high: "Dense", critical: "Critique" };
+  return map[traffic];
+}
