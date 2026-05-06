@@ -69,6 +69,7 @@ Si Kafka est installé sur la même machine, vous pouvez utiliser :
 localhost:9092
 ```
 
+**POUR PLUS DE DETAILS CONSULTER LE DOSSIER `images/` QUI CONTIENT DES SCREENSSHOTS**
 Si Node-RED est lancé avec Docker, utilisez le nom du service Kafka, par exemple :
 
 ```text
