@@ -28,6 +28,23 @@ ou, selon votre version de Docker :
 ```bash
 docker-compose up -d
 ```
+## Création du topic Kafka pour la température
+
+Créez un topic Kafka pour la température avec la commande suivante :
+
+```bash
+docker exec -it NOM_CONTENEUR_KAFKA kafka-topics.sh --create \
+  --topic nodered-smartcity-producer \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1
+```
+
+Remplacez `NOM_CONTENEUR_KAFKA` par le nom du conteneur Kafka obtenu avec la commande suivante :
+
+```bash
+docker ps
+```
 
 ## 2. Démarrer Node-RED
 
