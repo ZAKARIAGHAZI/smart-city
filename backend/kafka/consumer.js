@@ -1,6 +1,7 @@
 const { Kafka } = require("kafkajs");
 const EnvironmentReading = require("../models/EnvironmentReading");
 const WaterReading = require("../models/WaterReading");
+const TrafficReading = require("../models/TrafficReading");
 
 const kafka = new Kafka({
   clientId: "smartcity-multi-service",
@@ -13,7 +14,8 @@ const consumer = kafka.consumer({
 
 const TOPICS = {
   ENVIRONMENT: "smartcity.environment.readings",
-  WATER: "smartcity.water.readings"
+  WATER: "smartcity.water.readings",
+  TRAFFIC: "smartcity.traffic.readings"
 };
 
 async function startKafkaConsumer(io) {
@@ -74,6 +76,40 @@ async function startKafkaConsumer(io) {
             }
           });
           console.log(`[Kafka] Processed ${saved.length} Water readings`);
+        }
+
+        else if (topic === TOPICS.TRAFFIC) {
+          const docs = dataArray.map(data => ({
+            sensor_id: data.sensor_id,
+            route_id: data.route_id,
+            city: data.city,
+            sensor_type: data.sensor_type,
+            observation_time_s: data.observation_time_s,
+            occupied_time_s: data.occupied_time_s,
+            occupancy_rate: data.occupancy_rate,
+            congestion_index: data.congestion_index,
+            average_speed_kmh: data.average_speed_kmh,
+            vehicle_count: data.vehicle_count,
+            vehicle_detected: data.vehicle_detected,
+            traffic_status: data.traffic_status,
+            timestamp: data.timestamp ? new Date(data.timestamp) : new Date()
+          }));
+          const saved = await TrafficReading.insertMany(docs);
+          io.emit("traffic:new", saved);
+
+          // Alerts on heavy congestion
+          saved.forEach(d => {
+            if (d.traffic_status === "forte_congestion") {
+              io.emit("traffic:alert", {
+                sensor_id: d.sensor_id,
+                route_id: d.route_id,
+                congestion_index: d.congestion_index,
+                average_speed_kmh: d.average_speed_kmh,
+                timestamp: d.timestamp
+              });
+            }
+          });
+          console.log(`[Kafka] Processed ${saved.length} Traffic readings`);
         }
       } catch (error) {
         console.error(`[Kafka] Error processing topic ${topic}:`, error);

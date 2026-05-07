@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const EnvironmentReading = require("../models/EnvironmentReading");
 const WaterReading = require("../models/WaterReading");
+const TrafficReading = require("../models/TrafficReading");
 
 // ── ENVIRONMENT ENDPOINTS ──
 
@@ -135,6 +136,80 @@ router.get("/water/history", async (req, res) => {
     res.json(history.map(h => ({
       time: h.timestamp,
       flow: h.avgFlow
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── TRAFFIC ENDPOINTS ──
+
+router.get("/traffic/latest", async (req, res) => {
+  try {
+    const data = await TrafficReading.find().sort({ timestamp: -1 }).limit(100);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/traffic/stats-by-route", async (req, res) => {
+  try {
+    const result = await TrafficReading.aggregate([
+      {
+        $group: {
+          _id: "$route_id",
+          avgSpeed: { $avg: "$average_speed_kmh" },
+          avgOccupancy: { $avg: "$occupancy_rate" },
+          avgCongestion: { $avg: "$congestion_index" },
+          totalVehicles: { $sum: "$vehicle_count" },
+          count: { $sum: 1 },
+          lastUpdate: { $max: "$timestamp" }
+        }
+      }
+    ]);
+    res.json(result.map(item => ({
+      route_id: item._id,
+      avg_speed: item.avgSpeed,
+      avg_occupancy: item.avgOccupancy,
+      avg_congestion: item.avgCongestion,
+      total_vehicles: item.totalVehicles,
+      sensor_count: item.count,
+      last_update: item.lastUpdate
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/traffic/history", async (req, res) => {
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const history = await TrafficReading.aggregate([
+      { $match: { timestamp: { $gte: twentyFourHoursAgo } } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$timestamp" },
+            month: { $month: "$timestamp" },
+            day: { $dayOfMonth: "$timestamp" },
+            hour: { $hour: "$timestamp" }
+          },
+          avgSpeed: { $avg: "$average_speed_kmh" },
+          avgOccupancy: { $avg: "$occupancy_rate" },
+          avgCongestion: { $avg: "$congestion_index" },
+          totalVehicles: { $sum: "$vehicle_count" },
+          timestamp: { $min: "$timestamp" }
+        }
+      },
+      { $sort: { timestamp: 1 } }
+    ]);
+    res.json(history.map(h => ({
+      time: h.timestamp,
+      avg_speed: h.avgSpeed,
+      avg_occupancy: h.avgOccupancy,
+      avg_congestion: h.avgCongestion,
+      total_vehicles: h.totalVehicles
     })));
   } catch (err) {
     res.status(500).json({ error: err.message });

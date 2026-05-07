@@ -9,13 +9,9 @@ import {
   useMap,
   Pane,
 } from "react-leaflet";
-import L from "leaflet";
-import {
-  trafficRoutes,
-  getTrafficColor,
-  getTrafficWeight,
-  getTrafficLabel,
-} from "@/data/routes";
+import { trafficRoutes } from "@/data/routes";
+import type { RouteTrafficStats } from "@/lib/types";
+import { getTrafficStatusColor, getTrafficStatusLabel } from "@/lib/types";
 import Controls from "./Controls";
 import DashboardBar from "./DashboardBar";
 import TemperatureMapLayer from "./TemperatureMapLayer";
@@ -31,6 +27,7 @@ import GenericPlaceholderStats from "./GenericPlaceholderStats";
 import { SMART_CITY_DOMAINS } from "@/data/domains";
 import { useTemperatureData } from "@/hooks/useTemperatureData";
 import { useWaterData } from "@/hooks/useWaterData";
+import { useTrafficData } from "@/hooks/useTrafficData";
 
 import "leaflet/dist/leaflet.css";
 
@@ -44,7 +41,7 @@ function MapResizer({ dimensions }: { dimensions: any }) {
 }
 
 /* ── Routes overlay with zoom-adaptive weight ── */
-function RoutesOverlay({ mode }: { mode: string }) {
+function RoutesOverlay({ mode, trafficStats }: { mode: string; trafficStats: Map<string, RouteTrafficStats> }) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
 
@@ -57,37 +54,79 @@ function RoutesOverlay({ mode }: { mode: string }) {
   }, [map]);
 
   const scale = Math.pow(1.5, zoom - 13);
+  const isTrafficMode = mode.startsWith("traffic");
 
   return (
     <>
       {trafficRoutes.map((r) => {
-        const baseWeight = getTrafficWeight(r.traffic) * scale;
-        const isTrafficMode = mode.startsWith("traffic");
-        const weight = isTrafficMode ? Math.max(2, baseWeight) : 1.2;
-        const opacity = isTrafficMode ? 0.9 : 0.2;
+        const liveStats = trafficStats.get(r.id);
+
+        // Determine color and weight from live data when in traffic mode
+        let color: string;
+        let weight: number;
+        let opacity: number;
+        let dashArray: string | undefined;
+
+        if (isTrafficMode && liveStats) {
+          color = getTrafficStatusColor(liveStats.dominant_status);
+          const statusWeight = { fluide: 3, dense: 5, congestion: 7, forte_congestion: 9 };
+          weight = Math.max(2, (statusWeight[liveStats.dominant_status] || 3) * scale * 0.2);
+          opacity = 0.9;
+          dashArray = liveStats.dominant_status === "forte_congestion"
+            ? `${10 * scale} ${6 * scale}`
+            : undefined;
+        } else if (isTrafficMode) {
+          color = "#9ca3af";
+          weight = Math.max(2, 3 * scale);
+          opacity = 0.5;
+          dashArray = undefined;
+        } else {
+          color = "#9ca3af";
+          weight = 1.2;
+          opacity = 0.15;
+          dashArray = undefined;
+        }
 
         return (
           <Polyline
             key={r.id}
             positions={r.positions}
-            pathOptions={{
-              color: getTrafficColor(r.traffic),
-              weight,
-              opacity,
-              dashArray:
-                isTrafficMode && r.traffic === "critical"
-                  ? `${10 * scale} ${6 * scale}`
-                  : undefined,
-            }}
+            pathOptions={{ color, weight, opacity, dashArray }}
           >
             <Tooltip sticky>
-              <strong>
-                {r.fromLabel} → {r.toLabel}
-              </strong>
-              <br />
-              Trafic : {getTrafficLabel(r.traffic)}
-              <br />
-              Flux : {r.flowPerHour.toLocaleString("fr-FR")} véh/h
+              <div style={{ minWidth: 160 }}>
+                <strong style={{ fontSize: 13 }}>
+                  {r.fromLabel} → {r.toLabel}
+                </strong>
+                {isTrafficMode && liveStats ? (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: getTrafficStatusColor(liveStats.dominant_status),
+                        }}
+                      />
+                      <span style={{ fontWeight: 700 }}>
+                        {getTrafficStatusLabel(liveStats.dominant_status)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.6 }}>
+                      🚗 {liveStats.total_vehicles} véhicules<br />
+                      ⚡ {liveStats.avg_speed.toFixed(1)} km/h<br />
+                      📊 Congestion : {liveStats.avg_congestion.toFixed(2)}<br />
+                      📡 {liveStats.sensor_count} capteurs
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 4, fontSize: 11, color: "#9ca3af" }}>
+                    Pas de données en temps réel
+                  </div>
+                )}
+              </div>
             </Tooltip>
           </Polyline>
         );
@@ -136,16 +175,36 @@ export default function Map() {
     loading: waterLoading,
   } = useWaterData();
 
+  const {
+    routeStats: trafficRouteStats,
+    history: trafficHistory,
+    connected: trafficConnected,
+    loading: trafficLoading,
+  } = useTrafficData();
+
   const isWaterMode = mode === "water_consumption" || mode === "water_quality";
   const isEnvMode = mode === "temperature" || mode === "air_quality";
+  const isTrafficMode = mode === "traffic_congestion";
 
-  const currentStats = isWaterMode ? waterStats : envStats;
-  const currentConnected = isWaterMode ? waterConnected : envConnected;
-  const currentLoading = isWaterMode ? waterLoading : envLoading;
+  const currentStats = isTrafficMode
+    ? trafficRouteStats
+    : isWaterMode
+      ? waterStats
+      : envStats;
+  const currentConnected = isTrafficMode
+    ? trafficConnected
+    : isWaterMode
+      ? waterConnected
+      : envConnected;
+  const currentLoading = isTrafficMode
+    ? trafficLoading
+    : isWaterMode
+      ? waterLoading
+      : envLoading;
 
   const totalSensors = useMemo(() => {
     let count = 0;
-    currentStats.forEach((d) => {
+    currentStats.forEach((d: any) => {
       count += d.sensor_count;
     });
     return count;
@@ -256,7 +315,7 @@ export default function Map() {
 
           {/* Traffic routes */}
           <Pane name="routesPane" style={{ zIndex: 450 }}>
-            <RoutesOverlay mode={mode} />
+            <RoutesOverlay mode={mode} trafficStats={trafficRouteStats} />
           </Pane>
         </MapContainer>
 
@@ -265,14 +324,13 @@ export default function Map() {
           "air_quality",
           "water_consumption",
           "water_quality",
-          "traffic_flow",
-          "traffic_incidents",
+          "traffic_congestion",
         ].includes(mode) && (
           <DashboardBar
             mode={mode}
             districtStats={envStats}
             waterStats={waterStats}
-            trafficRoutes={trafficRoutes}
+            trafficStats={trafficRouteStats}
             connected={currentConnected}
           />
         )}
@@ -327,6 +385,17 @@ export default function Map() {
               ]}
             />
           )}
+          {mode === "traffic_congestion" && (
+            <Legend
+              title="🚦 Congestion Routière"
+              items={[
+                { color: "#22c55e", label: "Fluide" },
+                { color: "#f59e0b", label: "Dense" },
+                { color: "#f97316", label: "Congestion" },
+                { color: "#ef4444", label: "Forte Congestion" },
+              ]}
+            />
+          )}
         </div>
       </div>
 
@@ -368,8 +437,13 @@ export default function Map() {
               connected={waterConnected}
               loading={waterLoading}
             />
-          ) : mode.startsWith("traffic") ? (
-            <TrafficStats />
+          ) : isTrafficMode ? (
+            <TrafficStats
+              routeStats={trafficRouteStats}
+              history={trafficHistory}
+              connected={trafficConnected}
+              loading={trafficLoading}
+            />
           ) : (
             <GenericPlaceholderStats
               title={activeDomain.label}

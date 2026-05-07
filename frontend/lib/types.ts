@@ -268,3 +268,64 @@ export function getWaterFlowLevelColor(level: number): string {
   const colors = ["#d1fae5", "#34d399", "#3b82f6", "#1d4ed8"];
   return colors[level] || colors[0];
 }
+
+// ── TRAFFIC TYPES ──
+
+export type TrafficStatus = "fluide" | "dense" | "congestion" | "forte_congestion";
+
+export interface TrafficReading {
+  sensor_id: string;
+  route_id: string;
+  city: string;
+  sensor_type: string;
+  observation_time_s: number;
+  occupied_time_s: number;
+  occupancy_rate: number;
+  congestion_index: number;
+  average_speed_kmh: number;
+  vehicle_count: number;
+  vehicle_detected: number;
+  traffic_status: TrafficStatus;
+  timestamp: string;
+}
+
+export interface RouteTrafficStats {
+  route_id: string;
+  avg_speed: number;
+  avg_occupancy: number;
+  avg_congestion: number;
+  total_vehicles: number;
+  sensor_count: number;
+  last_update: string;
+  dominant_status: TrafficStatus;
+}
+
+export function getTrafficStatusColor(status: TrafficStatus): string {
+  const map: Record<TrafficStatus, string> = {
+    fluide: "#22c55e",
+    dense: "#f59e0b",
+    congestion: "#f97316",
+    forte_congestion: "#ef4444",
+  };
+  return map[status] || "#22c55e";
+}
+
+export function getTrafficStatusLabel(status: TrafficStatus): string {
+  const map: Record<TrafficStatus, string> = {
+    fluide: "Fluide",
+    dense: "Dense",
+    congestion: "Congestion",
+    forte_congestion: "Forte Congestion",
+  };
+  return map[status] || "Inconnu";
+}
+
+export function getTrafficStatusLevel(status: TrafficStatus): number {
+  const map: Record<TrafficStatus, number> = { fluide: 0, dense: 1, congestion: 2, forte_congestion: 3 };
+  return map[status] ?? 0;
+}
+
+export function getTrafficStatusLevelColor(level: number): string {
+  const colors = ["#22c55e", "#f59e0b", "#f97316", "#ef4444"];
+  return colors[level] || colors[0];
+}
