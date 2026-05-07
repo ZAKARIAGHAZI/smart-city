@@ -4,37 +4,43 @@ import { useEffect, useState } from "react";
 import { Marker, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { TemperatureReading } from "@/lib/types";
-import { getTemperatureFillColor } from "@/lib/types";
+import { getTemperatureFillColor, getAqiFillColor } from "@/lib/types";
 import { sensorsData } from "@/data/sensors";
 
-interface TemperatureSensorsLayerProps {
+interface EnvironmentSensorsLayerProps {
   latestReadings: TemperatureReading[];
   visible: boolean;
+  mode: "temperature" | "air_quality";
 }
 
-export default function TemperatureSensorsLayer({
+export default function EnvironmentSensorsLayer({
   latestReadings,
   visible,
-}: TemperatureSensorsLayerProps) {
+  mode,
+}: EnvironmentSensorsLayerProps) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
-  const [animatingSensors, setAnimatingSensors] = useState<Set<string>>(new Set());
+  const [animatingSensors, setAnimatingSensors] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Track map zoom
   useEffect(() => {
     const onZoom = () => setZoom(map.getZoom());
     map.on("zoomend", onZoom);
-    return () => { map.off("zoomend", onZoom); };
+    return () => {
+      map.off("zoomend", onZoom);
+    };
   }, [map]);
 
   // Watch for new readings and trigger animation
   useEffect(() => {
     if (!latestReadings || latestReadings.length === 0) return;
-    
+
     const now = Date.now();
     const newAnims = new Set<string>();
-    
-    latestReadings.forEach(reading => {
+
+    latestReadings.forEach((reading) => {
       const timeDiff = now - new Date(reading.timestamp).getTime();
       // If reading is newer than 3 seconds
       if (timeDiff < 3000) {
@@ -43,17 +49,17 @@ export default function TemperatureSensorsLayer({
     });
 
     if (newAnims.size > 0) {
-      setAnimatingSensors(prev => {
+      setAnimatingSensors((prev) => {
         const merged = new Set(prev);
-        newAnims.forEach(id => merged.add(id));
+        newAnims.forEach((id) => merged.add(id));
         return merged;
       });
 
       // Clear the animation after 2.5 seconds
       const timeout = setTimeout(() => {
-        setAnimatingSensors(prev => {
+        setAnimatingSensors((prev) => {
           const next = new Set(prev);
-          newAnims.forEach(id => next.delete(id));
+          newAnims.forEach((id) => next.delete(id));
           return next;
         });
       }, 2500);
@@ -69,14 +75,23 @@ export default function TemperatureSensorsLayer({
       {sensorsData.map((sensor) => {
         const reading = latestReadings?.find((r) => r.sensor_id === sensor.id);
         const isAnimating = animatingSensors.has(sensor.id);
-        
+
         let color = "#9ca3af"; // Gray for no data
-        let tempStr = "—";
+        let valueStr = "—";
+        let aqiStatus = "";
         let timeStr = "Aucune donnée";
 
         if (reading) {
-          color = getTemperatureFillColor(reading.temperature);
-          tempStr = reading.temperature.toFixed(1) + " °C";
+          if (mode === "temperature") {
+            color = getTemperatureFillColor(reading.temperature);
+            valueStr = reading.temperature.toFixed(1) + " °C";
+          } else {
+            const aqi = reading.air_quality?.aqi || 0;
+            color = getAqiFillColor(aqi);
+            valueStr = `AQI ${Math.round(aqi)}`;
+            aqiStatus = reading.air_quality?.status || "";
+          }
+          
           timeStr = "MAJ: " + new Date(reading.timestamp).toLocaleTimeString("fr-FR");
         }
 
@@ -87,8 +102,8 @@ export default function TemperatureSensorsLayer({
         // Create a custom HTML icon with dynamic pixel sizes
         const iconHtml = `
           <div style="position: relative; width: ${currentSize}px; height: ${currentSize}px;">
-            ${isAnimating ? `<span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background-color:${color}"></span>` : ''}
-            <span class="relative inline-flex rounded-full border-[1.5px] border-white shadow-sm" style="width: ${currentSize}px; height: ${currentSize}px; background-color:${color}"></span>
+            ${isAnimating ? `<span style="background-color: ${color}; width: ${currentSize * 1.8}px; height: ${currentSize * 1.8}px; left: ${-currentSize * 0.4}px; top: ${-currentSize * 0.4}px;" class="animate-ping absolute inline-flex rounded-full opacity-75"></span>` : ""}
+            <span class="relative inline-flex rounded-full border-[1.5px] border-white" style="width: ${currentSize}px; height: ${currentSize}px; background-color: ${color};"></span>
           </div>
         `;
 
@@ -107,13 +122,22 @@ export default function TemperatureSensorsLayer({
           >
             <Tooltip direction="top" offset={[0, -7]} opacity={1}>
               <div className="text-center font-sans">
-                <div className="text-[10px] text-gray-500 mb-0.5 font-mono">${sensor.id}</div>
-                <div className="text-[10px] text-blue-500 font-semibold">${sensor.districtName}</div>
-                <div className="font-extrabold text-gray-800 text-sm mt-1">
-                  ${tempStr}
+                <div className="text-[10px] text-gray-400 mb-0.5 font-mono">
+                  {sensor.id}
                 </div>
-                <div className="text-[9px] text-gray-400 mt-1">
-                  ${timeStr}
+                <div className="text-xs text-gray-700 font-bold">
+                  {sensor.districtName}
+                </div>
+                <div className="font-black text-gray-900 text-sm mt-1">
+                  {valueStr}
+                </div>
+                {aqiStatus && (
+                  <div className="text-[9px] text-blue-400 font-bold uppercase mt-0.5">
+                    {aqiStatus}
+                  </div>
+                )}
+                <div className="text-[8px] text-gray-400 mt-1 uppercase tracking-tighter font-medium">
+                  {timeStr}
                 </div>
               </div>
             </Tooltip>

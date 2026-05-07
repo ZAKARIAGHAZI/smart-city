@@ -1,0 +1,198 @@
+[
+  {
+    "id": "TEMP-ELJ-001",
+    "districtId": "sidi_bouzid",
+    "districtName": "Sidi Bouzid",
+    "lat": 33.227569,
+    "lng": -8.549911
+  },
+  {
+    "id": "TEMP-ELJ-002",
+    "districtId": "sidi_bouzid",
+    "districtName": "Sidi Bouzid",
+    "lat": 33.218875,
+    "lng": -8.557996
+  },
+  {
+    "id": "TEMP-ELJ-003",
+    "districtId": "sidi_bouzid",
+    "districtName": "Sidi Bouzid",
+    "lat": 33.232158,
+    "lng": -8.554047
+  },
+  {
+    "id": "TEMP-ELJ-004",
+    "districtId": "bennani",
+    "districtName": "Bennani",
+    "lat": 33.242754,
+    "lng": -8.538655
+  },
+  {
+    "id": "TEMP-ELJ-005",
+    "districtId": "bennani",
+    "districtName": "Bennani",
+    "lat": 33.239372,
+    "lng": -8.536220
+  },
+  {
+    "id": "TEMP-ELJ-006",
+    "districtId": "bennani",
+    "districtName": "Bennani",
+    "lat": 33.241875,
+    "lng": -8.535984
+  },
+  {
+    "id": "TEMP-ELJ-007",
+    "districtId": "el_manar",
+    "districtName": "El Manar",
+    "lat": 33.24892,
+    "lng": -8.52716
+  },
+  {
+    "id": "TEMP-ELJ-008",
+    "districtId": "el_manar",
+    "districtName": "El Manar",
+    "lat": 33.24941,
+    "lng": -8.52648
+  },
+  {
+    "id": "TEMP-ELJ-009",
+    "districtId": "el_manar",
+    "districtName": "El Manar",
+    "lat": 33.24831,
+    "lng": -8.52791
+  },
+  {
+    "id": "TEMP-ELJ-010",
+    "districtId": "sidi_moussa",
+    "districtName": "Sidi Moussa",
+    "lat": 33.233451,
+    "lng": -8.489166
+  },
+  {
+    "id": "TEMP-ELJ-011",
+    "districtId": "sidi_moussa",
+    "districtName": "Sidi Moussa",
+    "lat": 33.23288,
+    "lng": -8.48852
+  },
+  {
+    "id": "TEMP-ELJ-012",
+    "districtId": "sidi_moussa",
+    "districtName": "Sidi Moussa",
+    "lat": 33.23407,
+    "lng": -8.48994
+  },
+  {
+    "id": "TEMP-ELJ-013",
+    "districtId": "essaada",
+    "districtName": "Essaada",
+    "lat": 33.242909,
+    "lng": -8.52803
+  },
+  {
+    "id": "TEMP-ELJ-014",
+    "districtId": "essaada",
+    "districtName": "Essaada",
+    "lat": 33.24231,
+    "lng": -8.52742
+  },
+  {
+    "id": "TEMP-ELJ-015",
+    "districtId": "essaada",
+    "districtName": "Essaada",
+    "lat": 33.24344,
+    "lng": -8.52871
+  },
+  {
+    "id": "TEMP-ELJ-016",
+    "districtId": "mouilha",
+    "districtName": "Mouilha",
+    "lat": 33.250075,
+    "lng": -8.520951
+  },
+  {
+    "id": "TEMP-ELJ-017",
+    "districtId": "mouilha",
+    "districtName": "Mouilha",
+    "lat": 33.24949,
+    "lng": -8.52027
+  },
+  {
+    "id": "TEMP-ELJ-018",
+    "districtId": "mouilha",
+    "districtName": "Mouilha",
+    "lat": 33.25066,
+    "lng": -8.52162
+  },
+  {
+    "id": "TEMP-ELJ-020",
+    "districtId": "cite_portugaise",
+    "districtName": "Cité Portugaise",
+    "lat": 33.25681,
+    "lng": -8.50282
+  },
+  {
+    "id": "TEMP-ELJ-022",
+    "districtId": "najd",
+    "districtName": "Najd",
+    "lat": 33.226638,
+    "lng": -8.505685
+  },
+  {
+    "id": "TEMP-ELJ-023",
+    "districtId": "najd",
+    "districtName": "Najd",
+    "lat": 33.22605,
+    "lng": -8.50502
+  },
+  {
+    "id": "TEMP-ELJ-024",
+    "districtId": "najd",
+    "districtName": "Najd",
+    "lat": 33.22721,
+    "lng": -8.50633
+  },
+  {
+    "id": "TEMP-ELJ-025",
+    "districtId": "les_facultes",
+    "districtName": "Les Facultés",
+    "lat": 33.225827,
+    "lng": -8.487105
+  },
+  {
+    "id": "TEMP-ELJ-026",
+    "districtId": "les_facultes",
+    "districtName": "Les Facultés",
+    "lat": 33.22327,
+    "lng": -8.48648
+  },
+  {
+    "id": "TEMP-ELJ-027",
+    "districtId": "les_facultes",
+    "districtName": "Les Facultés",
+    "lat": 33.22599,
+    "lng": -8.48996
+  },
+  {
+    "id": "TEMP-ELJ-028",
+    "districtId": "quartier_jaouhara",
+    "districtName": "Quartier Jaouhara",
+    "lat": 33.22934,
+    "lng": -8.491396
+  },
+  {
+    "id": "TEMP-ELJ-029",
+    "districtId": "quartier_jaouhara",
+    "districtName": "Quartier Jaouhara",
+    "lat": 33.22878,
+    "lng": -8.49076
+  },
+  {
+    "id": "TEMP-ELJ-030",
+    "districtId": "quartier_jaouhara",
+    "districtName": "Quartier Jaouhara",
+    "lat": 33.22991,
+    "lng": -8.49204
+  }
+]

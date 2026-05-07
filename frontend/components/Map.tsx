@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -21,33 +21,39 @@ import DashboardBar from "./DashboardBar";
 import TemperatureMapLayer from "./TemperatureMapLayer";
 import TemperatureSensorsLayer from "./TemperatureSensorsLayer";
 import TemperatureStats from "./TemperatureStats";
+import AirQualityStats from "./AirQualityStats";
 import TemperatureAlerts from "./TemperatureAlerts";
 import TrafficStats from "./TrafficStats";
+import WaterMapLayer from "./WaterMapLayer";
+import WaterSensorsLayer from "./WaterSensorsLayer";
+import WaterStats from "./WaterStats";
 import GenericPlaceholderStats from "./GenericPlaceholderStats";
 import { SMART_CITY_DOMAINS } from "@/data/domains";
 import { useTemperatureData } from "@/hooks/useTemperatureData";
+import { useWaterData } from "@/hooks/useWaterData";
 
 import "leaflet/dist/leaflet.css";
 
-/* ── Invalidate map size after mount ── */
-function MapResizer() {
+/* ── Invalidate map size when dimensions change ── */
+function MapResizer({ dimensions }: { dimensions: any }) {
   const map = useMap();
   useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 250);
-    return () => clearTimeout(t);
-  }, [map]);
+    map.invalidateSize();
+  }, [map, dimensions]);
   return null;
 }
 
 /* ── Routes overlay with zoom-adaptive weight ── */
-function RoutesOverlay({ mode }: { mode: "temperature" | "traffic" }) {
+function RoutesOverlay({ mode }: { mode: string }) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
 
   useEffect(() => {
     const onZoom = () => setZoom(map.getZoom());
     map.on("zoomend", onZoom);
-    return () => { map.off("zoomend", onZoom); };
+    return () => {
+      map.off("zoomend", onZoom);
+    };
   }, [map]);
 
   const scale = Math.pow(1.5, zoom - 13);
@@ -56,9 +62,9 @@ function RoutesOverlay({ mode }: { mode: "temperature" | "traffic" }) {
     <>
       {trafficRoutes.map((r) => {
         const baseWeight = getTrafficWeight(r.traffic) * scale;
-        // Thin and semi-transparent if temperature mode
-        const weight = mode === "temperature" ? 1.5 : Math.max(2, baseWeight);
-        const opacity = mode === "temperature" ? 0.3 : 0.9;
+        const isTrafficMode = mode.startsWith("traffic");
+        const weight = isTrafficMode ? Math.max(2, baseWeight) : 1.2;
+        const opacity = isTrafficMode ? 0.9 : 0.2;
 
         return (
           <Polyline
@@ -68,13 +74,20 @@ function RoutesOverlay({ mode }: { mode: "temperature" | "traffic" }) {
               color: getTrafficColor(r.traffic),
               weight,
               opacity,
-              dashArray: r.traffic === "critical" ? `${10 * scale} ${6 * scale}` : undefined,
+              dashArray:
+                isTrafficMode && r.traffic === "critical"
+                  ? `${10 * scale} ${6 * scale}`
+                  : undefined,
             }}
           >
             <Tooltip sticky>
-              <strong>{r.fromLabel} → {r.toLabel}</strong>
-              <br />Trafic : {getTrafficLabel(r.traffic)}
-              <br />Flux : {r.flowPerHour.toLocaleString("fr-FR")} véh/h
+              <strong>
+                {r.fromLabel} → {r.toLabel}
+              </strong>
+              <br />
+              Trafic : {getTrafficLabel(r.traffic)}
+              <br />
+              Flux : {r.flowPerHour.toLocaleString("fr-FR")} véh/h
             </Tooltip>
           </Polyline>
         );
@@ -83,98 +96,193 @@ function RoutesOverlay({ mode }: { mode: "temperature" | "traffic" }) {
   );
 }
 
-/* ══════════════════════════════════════════════════ */
 export default function Map() {
   const [mode, setMode] = useState<string>("temperature");
 
-  // Get current active domain details
+  // Sidebar State
+  const [leftWidth, setLeftWidth] = useState(320);
+  const [rightWidth, setRightWidth] = useState(620);
+  const [isResizingLeft, setIsResizingLeft] = useState(false);
+  const [isResizingRight, setIsResizingRight] = useState(false);
+
+  const MIN_WIDTH = 250;
+  const SNAP_THRESHOLD = 150;
+
   const activeDomain = useMemo(() => {
     for (const category of SMART_CITY_DOMAINS) {
-      const found = category.items.find(item => item.id === mode);
+      const found = category.items.find((item) => item.id === mode);
       if (found) return found;
     }
     return SMART_CITY_DOMAINS[0].items[0];
   }, [mode]);
 
-  // Kafka temperature data — the ONLY data source
+  // Data Hooks
   const {
-    latestReadings,
-    districtStats,
-    alerts,
-    connected,
-    loading,
-    error,
-    acknowledgeAlert,
+    latestReadings: envReadings,
+    districtStats: envStats,
+    alerts: envAlerts,
+    history: envHistory,
+    connected: envConnected,
+    loading: envLoading,
+    error: envError,
+    acknowledgeAlert: envAck,
   } = useTemperatureData();
+
+  const {
+    latestReadings: waterReadings,
+    districtStats: waterStats,
+    history: waterHistory,
+    connected: waterConnected,
+    loading: waterLoading,
+  } = useWaterData();
+
+  const isWaterMode = mode === "water_consumption" || mode === "water_quality";
+  const isEnvMode = mode === "temperature" || mode === "air_quality";
+
+  const currentStats = isWaterMode ? waterStats : envStats;
+  const currentConnected = isWaterMode ? waterConnected : envConnected;
+  const currentLoading = isWaterMode ? waterLoading : envLoading;
 
   const totalSensors = useMemo(() => {
     let count = 0;
-    districtStats.forEach((d) => { count += d.sensor_count; });
+    currentStats.forEach((d) => {
+      count += d.sensor_count;
+    });
     return count;
-  }, [districtStats]);
+  }, [currentStats]);
+
+  // Resizing Logic
+  const startResizingLeft = useCallback(() => setIsResizingLeft(true), []);
+  const startResizingRight = useCallback(() => setIsResizingRight(true), []);
+  const stopResizing = useCallback(() => {
+    setIsResizingLeft(false);
+    setIsResizingRight(false);
+  }, []);
+
+  const resize = useCallback(
+    (e: MouseEvent) => {
+      if (isResizingLeft) {
+        const newWidth = e.clientX;
+        if (newWidth < SNAP_THRESHOLD) setLeftWidth(0);
+        else if (newWidth < MIN_WIDTH) setLeftWidth(MIN_WIDTH);
+        else setLeftWidth(newWidth);
+      }
+      if (isResizingRight) {
+        const newWidth = window.innerWidth - e.clientX;
+        if (newWidth < SNAP_THRESHOLD) setRightWidth(0);
+        else if (newWidth < MIN_WIDTH) setRightWidth(MIN_WIDTH);
+        else setRightWidth(newWidth);
+      }
+    },
+    [isResizingLeft, isResizingRight],
+  );
+
+  useEffect(() => {
+    if (isResizingLeft || isResizingRight) {
+      window.addEventListener("mousemove", resize);
+      window.addEventListener("mouseup", stopResizing);
+    }
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [isResizingLeft, isResizingRight, resize, stopResizing]);
 
   return (
-    <div className="flex h-screen w-screen bg-gray-50">
-      {/* Controls Sidebar */}
-      <Controls
-        mode={mode}
-        onModeChange={setMode}
-        kafkaConnected={connected}
-        districtCount={districtStats.size}
-        sensorCount={totalSensors}
+    <div
+      className={`flex h-screen w-screen bg-gray-50 overflow-hidden select-none ${isResizingLeft || isResizingRight ? "cursor-col-resize" : ""}`}
+    >
+      {/* Left Sidebar */}
+      <div
+        style={{ width: leftWidth }}
+        className="h-full bg-[#fafaf8] relative transition-[width] duration-75 ease-out overflow-hidden flex-shrink-0"
+      >
+        <Controls
+          mode={mode}
+          onModeChange={setMode}
+          kafkaConnected={currentConnected}
+          districtCount={currentStats.size}
+          sensorCount={totalSensors}
+        />
+      </div>
+
+      {/* Left Resizer */}
+      <div
+        onMouseDown={startResizingLeft}
+        className={`w-1.5 h-full cursor-col-resize hover:bg-blue-500/30 transition-colors z-[1100] flex-shrink-0 ${isResizingLeft ? "bg-blue-500" : "bg-gray-200"}`}
       />
 
       {/* Map Area */}
-      <div className="flex-1 relative h-screen">
+      <div className="flex-1 relative h-screen min-w-0">
         <MapContainer
           center={[33.246, -8.506]}
           zoom={13}
           className="w-full h-full"
           zoomControl={false}
         >
-          <MapResizer />
+          <MapResizer dimensions={{ leftWidth, rightWidth }} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution="&copy; OpenStreetMap"
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
 
-          {/* Kafka temperature-colored zones */}
+          {/* Environmental Layers */}
           <TemperatureMapLayer
-            districtStats={districtStats}
-            visible={mode === "temperature"}
+            districtStats={envStats}
+            visible={isEnvMode}
+            mode={mode as any}
           />
+          <Pane name="envSensorsPane" style={{ zIndex: 460 }}>
+            <TemperatureSensorsLayer
+              latestReadings={envReadings}
+              visible={isEnvMode}
+              mode={mode as any}
+            />
+          </Pane>
+
+          {/* Water Layers */}
+          <WaterMapLayer
+            districtStats={waterStats}
+            visible={isWaterMode}
+            mode={mode as any}
+          />
+          <Pane name="waterSensorsPane" style={{ zIndex: 460 }}>
+            <WaterSensorsLayer
+              latestReadings={waterReadings}
+              visible={isWaterMode}
+              mode={mode as any}
+            />
+          </Pane>
 
           {/* Traffic routes */}
           <Pane name="routesPane" style={{ zIndex: 450 }}>
-            {mode === "traffic" || mode === "traffic_congestion" ? (
-              <RoutesOverlay mode={"traffic"} />
-            ) : mode === "temperature" ? (
-              <RoutesOverlay mode={"temperature"} />
-            ) : null}
-          </Pane>
-
-          {/* Individual Sensors */}
-          <Pane name="sensorsPane" style={{ zIndex: 460 }}>
-            <TemperatureSensorsLayer 
-              latestReadings={latestReadings} 
-              visible={mode === "temperature"} 
-            />
+            <RoutesOverlay mode={mode} />
           </Pane>
         </MapContainer>
 
-        {/* Dashboard KPI bar — Kafka data only */}
-        {mode === "temperature" && (
-          <DashboardBar districtStats={districtStats} connected={connected} />
+        {[
+          "temperature",
+          "air_quality",
+          "water_consumption",
+          "water_quality",
+          "traffic_flow",
+          "traffic_incidents",
+        ].includes(mode) && (
+          <DashboardBar
+            mode={mode}
+            districtStats={envStats}
+            waterStats={waterStats}
+            trafficRoutes={trafficRoutes}
+            connected={currentConnected}
+          />
         )}
 
-        {/* Temperature Legend */}
-        {mode === "temperature" && (
-          <div className="absolute bottom-6 right-6 z-[1000] bg-white/95 backdrop-blur-md border border-gray-200 rounded-sm p-2 w-max">
-            <h3 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
-              🌡️ Température
-            </h3>
-            <div className="space-y-1">
-              {[
+        {/* Legends */}
+        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
+          {mode === "temperature" && (
+            <Legend
+              title="🌡️ Température"
+              items={[
                 { color: "#93c5fd", label: "< 15°C" },
                 { color: "#60a5fa", label: "15 – 20°C" },
                 { color: "#fbbf24", label: "20 – 25°C" },
@@ -182,41 +290,123 @@ export default function Map() {
                 { color: "#f97316", label: "29 – 32°C" },
                 { color: "#ef4444", label: "32 – 35°C" },
                 { color: "#dc2626", label: "> 35°C" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-2">
-                  <div className="w-3.5 h-3.5 rounded" style={{ backgroundColor: item.color }} />
-                  <span className="text-[11px] text-gray-600">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+              ]}
+            />
+          )}
+          {mode === "air_quality" && (
+            <Legend
+              title="🌬️ Qualité de l'Air (AQI)"
+              items={[
+                { color: "#22c55e", label: "0 – 50 (Bon)" },
+                { color: "#84cc16", label: "51 – 100 (Moyen)" },
+                { color: "#eab308", label: "101 – 150 (Sensible)" },
+                { color: "#f97316", label: "151 – 200 (Mauvais)" },
+                { color: "#ef4444", label: "201 – 300 (Très Mauvais)" },
+                { color: "#7f1d1d", label: "> 300 (Dangereux)" },
+              ]}
+            />
+          )}
+          {mode === "water_consumption" && (
+            <Legend
+              title="💧 Débit d'Eau"
+              items={[
+                { color: "#d1fae5", label: "0 – 5 L/min" },
+                { color: "#34d399", label: "5 – 15 L/min" },
+                { color: "#3b82f6", label: "15 – 25 L/min" },
+                { color: "#1d4ed8", label: "> 25 L/min" },
+              ]}
+            />
+          )}
+          {mode === "water_quality" && (
+            <Legend
+              title="🧪 Qualité d'Eau (pH)"
+              items={[
+                { color: "#f87171", label: "< 6.5 (Acide)" },
+                { color: "#34d399", label: "6.5 – 8.5 (Sain)" },
+                { color: "#818cf8", label: "> 8.5 (Basique)" },
+              ]}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Right panel: Kafka Stats + Alerts */}
-      <div className="w-80 h-screen bg-gray-50 border-l border-gray-200 flex flex-col overflow-y-auto p-3 gap-2">
-        {mode === "temperature" ? (
-          <>
-            <TemperatureStats
-              districtStats={districtStats}
-              connected={connected}
-              loading={loading}
-              error={error}
+      {/* Right Resizer */}
+      <div
+        onMouseDown={startResizingRight}
+        className={`relative z-9999 w-1.5 h-full cursor-col-resize hover:bg-blue-500/30 transition-colors z-[1100] flex-shrink-0 ${isResizingRight ? "bg-blue-500" : "bg-gray-200"}`}
+      />
+
+      {/* Right Sidebar */}
+      <div
+        style={{ width: rightWidth }}
+        className="h-full bg-[#fafaf8] relative transition-[width] duration-75 ease-out overflow-y-auto flex-shrink-0"
+      >
+        <div className="flex flex-col gap-2 min-w-[250px]">
+          {mode === "temperature" ? (
+            <>
+              <TemperatureStats
+                districtStats={envStats}
+                history={envHistory}
+                connected={envConnected}
+                loading={envLoading}
+                error={envError}
+              />
+              <TemperatureAlerts alerts={envAlerts} onAcknowledge={envAck} />
+            </>
+          ) : mode === "air_quality" ? (
+            <AirQualityStats
+              districtStats={envStats}
+              history={envHistory}
+              connected={envConnected}
+              loading={envLoading}
+              error={envError}
             />
-            <TemperatureAlerts
-              alerts={alerts}
-              onAcknowledge={acknowledgeAlert}
+          ) : mode === "water_consumption" || mode === "water_quality" ? (
+            <WaterStats
+              districtStats={waterStats}
+              history={waterHistory}
+              connected={waterConnected}
+              loading={waterLoading}
             />
-          </>
-        ) : mode === "traffic" || mode === "traffic_congestion" ? (
-          <TrafficStats />
-        ) : (
-          <GenericPlaceholderStats 
-            title={activeDomain.label} 
-            icon={activeDomain.icon} 
-            colorClass={activeDomain.colorClass} 
-          />
-        )}
+          ) : mode.startsWith("traffic") ? (
+            <TrafficStats />
+          ) : (
+            <GenericPlaceholderStats
+              title={activeDomain.label}
+              icon={activeDomain.icon}
+              colorClass={activeDomain.colorClass}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Legend({
+  title,
+  items,
+}: {
+  title: string;
+  items: { color: string; label: string }[];
+}) {
+  return (
+    <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-sm p-2 w-max ">
+      <h3 className="text-[11px] font-bold text-gray-800 mb-2 uppercase tracking-tight">
+        {title}
+      </h3>
+      <div className="space-y-1">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            <span className="text-[10px] text-gray-600 font-medium">
+              {item.label}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

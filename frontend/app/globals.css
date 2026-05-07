@@ -1,13 +1,12 @@
 @import "tailwindcss";
 
-@theme inline {
-  --color-background: #f8fafc;
-  --color-foreground: #0f172a;
-  --font-sans: var(--font-inter);
-}
-
 * {
   box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+* :not(button, a) {
+  cursor: default;
 }
 
 body {
@@ -53,7 +52,6 @@ body {
   border: 1px solid #e2e8f0 !important;
   border-radius: 8px !important;
   color: #0f172a !important;
-  font-family: var(--font-inter), system-ui, sans-serif !important;
   font-size: 12px !important;
   padding: 6px 10px !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
@@ -73,6 +71,13 @@ body {
 
 .leaflet-control-attribution a {
   color: #3b82f6 !important;
+}
+
+/* ── Smooth transitions for Map Zones ── */
+
+.district-polygon {
+  transition: fill 0.8s ease-in-out, fill-opacity 0.8s ease-in-out, stroke 0.3s ease;
+  pointer-events: auto;
 }
 
 /* ── Custom animation keyframes ── */

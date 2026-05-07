@@ -6,7 +6,7 @@ let socket: Socket | null = null;
 
 /**
  * Singleton Socket.IO connection to the backend.
- * The backend consumes Kafka topic `smartcity.temperature.readings`
+ * The backend consumes Kafka topic `smartcity.environment.readings`
  * and re-broadcasts via Socket.IO events.
  */
 export function getSocket(): Socket {

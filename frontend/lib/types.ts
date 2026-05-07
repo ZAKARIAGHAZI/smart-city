@@ -1,23 +1,39 @@
 /**
  * Raw temperature reading from a sensor (via Kafka → Backend → Socket.IO)
  */
+export interface AirQuality {
+  aqi: number;
+  status: string;
+  main_pollutant: string;
+  pm25: number;
+  pm10: number;
+  no2: number;
+  co: number;
+  o3: number;
+  units: {
+    [key: string]: string;
+  };
+}
+
 export interface TemperatureReading {
   sensor_id: string;
   city: string;
   district: string;
   temperature: number;
   unit: string;
+  air_quality?: AirQuality;
   timestamp: string;
 }
 
 /**
- * Aggregated temperature stats per district (from /api/temperatures/avg-by-district)
+ * Aggregated stats per district
  */
 export interface DistrictTemperature {
   district: string;
   avg_temperature: number;
   min_temperature: number;
   max_temperature: number;
+  avg_aqi?: number;
   sensor_count: number;
   last_update: string;
 }
@@ -39,40 +55,216 @@ export interface TemperatureAlert {
  */
 export type TemperatureLevel = "normal" | "warm" | "critical";
 
-export function getTemperatureLevel(temp: number): TemperatureLevel {
-  if (temp >= 32) return "critical";
-  if (temp >= 25) return "warm";
-  return "normal";
+export function getTemperatureLevel(temp: number): number {
+  if (temp >= 32) return 2;
+  if (temp >= 25) return 1;
+  return 0;
 }
 
-export function getTemperatureLevelColor(level: TemperatureLevel): string {
+export function getTemperatureLevelColor(level: number): string {
   switch (level) {
-    case "normal":
+    case 0:
       return "#3b82f6"; // blue
-    case "warm":
+    case 1:
       return "#f59e0b"; // amber
-    case "critical":
+    case 2:
       return "#ef4444"; // red
+    default:
+      return "#3b82f6";
   }
 }
 
-export function getTemperatureLevelLabel(level: TemperatureLevel): string {
+export function getTemperatureLevelLabel(level: number): string {
   switch (level) {
-    case "normal":
+    case 0:
       return "Normale";
-    case "warm":
+    case 1:
       return "Chaude";
-    case "critical":
+    case 2:
       return "Critique";
+    default:
+      return "Normale";
   }
+}
+
+/**
+ * Interpolates between two hex colors based on a factor (0-1)
+ */
+function interpolateHex(color1: string, color2: string, factor: number): string {
+  const r1 = parseInt(color1.slice(1, 3), 16);
+  const g1 = parseInt(color1.slice(3, 5), 16);
+  const b1 = parseInt(color1.slice(5, 7), 16);
+
+  const r2 = parseInt(color2.slice(1, 3), 16);
+  const g2 = parseInt(color2.slice(3, 5), 16);
+  const b2 = parseInt(color2.slice(5, 7), 16);
+
+  const r = Math.round(r1 + factor * (r2 - r1));
+  const g = Math.round(g1 + factor * (g2 - g1));
+  const b = Math.round(b1 + factor * (b2 - b1));
+
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
 
 export function getTemperatureFillColor(temp: number): string {
-  if (temp >= 35) return "#dc2626";   // red-600
-  if (temp >= 32) return "#ef4444";   // red-500
-  if (temp >= 29) return "#f97316";   // orange-500
-  if (temp >= 25) return "#f59e0b";   // amber-500
-  if (temp >= 20) return "#fbbf24";   // yellow-400
-  if (temp >= 15) return "#60a5fa";   // blue-400
-  return "#93c5fd";                   // blue-300
+  const stops = [
+    { t: 10, c: "#93c5fd" }, // blue-300
+    { t: 15, c: "#60a5fa" }, // blue-400
+    { t: 20, c: "#fbbf24" }, // yellow-400
+    { t: 25, c: "#f59e0b" }, // amber-500
+    { t: 30, c: "#f97316" }, // orange-500
+    { t: 35, c: "#ef4444" }, // red-500
+    { t: 40, c: "#dc2626" }, // red-600
+  ];
+
+  if (temp <= stops[0].t) return stops[0].c;
+  if (temp >= stops[stops.length - 1].t) return stops[stops.length - 1].c;
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    const s1 = stops[i];
+    const s2 = stops[i + 1];
+    if (temp >= s1.t && temp <= s2.t) {
+      const factor = (temp - s1.t) / (s2.t - s1.t);
+      return interpolateHex(s1.c, s2.c, factor);
+    }
+  }
+
+  return stops[stops.length - 1].c;
+}
+
+export function getAqiFillColor(aqi: number): string {
+  const stops = [
+    { t: 0, c: "#22c55e" },   // green-500 (Good)
+    { t: 50, c: "#84cc16" },  // lime-500
+    { t: 100, c: "#eab308" }, // yellow-500 (Moderate)
+    { t: 150, c: "#f97316" }, // orange-500 (Unhealthy for Sensitive)
+    { t: 200, c: "#ef4444" }, // red-500 (Unhealthy)
+    { t: 300, c: "#a855f7" }, // purple-500 (Very Unhealthy)
+    { t: 400, c: "#7f1d1d" }, // red-900 (Hazardous)
+  ];
+
+  if (aqi <= stops[0].t) return stops[0].c;
+  if (aqi >= stops[stops.length - 1].t) return stops[stops.length - 1].c;
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    const s1 = stops[i];
+    const s2 = stops[i + 1];
+    if (aqi >= s1.t && aqi <= s2.t) {
+      const factor = (aqi - s1.t) / (s2.t - s1.t);
+      return interpolateHex(s1.c, s2.c, factor);
+    }
+  }
+
+  return stops[stops.length - 1].c;
+}
+
+export function getAqiLevel(aqi: number): number {
+  if (aqi <= 50) return 0;
+  if (aqi <= 100) return 1;
+  if (aqi <= 150) return 2;
+  if (aqi <= 200) return 3;
+  if (aqi <= 300) return 4;
+  return 5;
+}
+
+export function getAqiLevelColor(level: number): string {
+  const colors = ["#22c55e", "#84cc16", "#eab308", "#f97316", "#ef4444", "#7f1d1d"];
+  return colors[level] || colors[0];
+}
+
+// ── WATER TYPES ──
+
+export interface WaterFlow {
+  pulses: number;
+  flow_rate_l_min: number;
+  volume_l: number;
+  flow_unit: string;
+  volume_unit: string;
+  status: string;
+}
+
+export interface WaterQuality {
+  ph: number;
+  turbidity_ntu: number;
+  tds_ppm: number;
+  chlorine_mg_l: number;
+  conductivity_us_cm: number;
+  water_temperature_c: number;
+  status: string;
+  units: { [key: string]: string };
+}
+
+export interface WaterReading {
+  sensor_id: string;
+  city: string;
+  district: string;
+  type: string;
+  water_flow: WaterFlow;
+  water_quality: WaterQuality;
+  timestamp: string;
+}
+
+export interface DistrictWater {
+  district: string;
+  avg_flow: number;
+  total_volume: number;
+  avg_ph: number;
+  avg_turbidity: number;
+  sensor_count: number;
+  last_update: string;
+}
+
+export function getPhColor(ph: number): string {
+  if (ph < 6.5) return "#f87171"; // acidic
+  if (ph > 8.5) return "#818cf8"; // basic
+  return "#34d399"; // neutral
+}
+
+export function getPhLevel(ph: number): number {
+  if (ph < 6.5) return 0;
+  if (ph > 8.5) return 2;
+  return 1;
+}
+
+export function getPhLevelColor(level: number): string {
+  switch (level) {
+    case 0: return "#f87171";
+    case 1: return "#34d399";
+    case 2: return "#818cf8";
+    default: return "#34d399";
+  }
+}
+
+export function getWaterFlowColor(flow: number): string {
+  const stops = [
+    { t: 0, c: "#d1fae5" },   
+    { t: 10, c: "#34d399" },  
+    { t: 20, c: "#3b82f6" },  
+    { t: 30, c: "#1d4ed8" },  
+  ];
+  
+  if (flow <= stops[0].t) return stops[0].c;
+  if (flow >= stops[stops.length - 1].t) return stops[stops.length - 1].c;
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    const s1 = stops[i];
+    const s2 = stops[i + 1];
+    if (flow >= s1.t && flow <= s2.t) {
+      const factor = (flow - s1.t) / (s2.t - s1.t);
+      return interpolateHex(s1.c, s2.c, factor);
+    }
+  }
+  return stops[stops.length - 1].c;
+}
+
+export function getWaterFlowLevel(flow: number): number {
+  if (flow < 5) return 0;
+  if (flow < 15) return 1;
+  if (flow < 25) return 2;
+  return 3;
+}
+
+export function getWaterFlowLevelColor(level: number): string {
+  const colors = ["#d1fae5", "#34d399", "#3b82f6", "#1d4ed8"];
+  return colors[level] || colors[0];
 }

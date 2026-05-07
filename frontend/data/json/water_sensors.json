@@ -1,0 +1,212 @@
+[
+  {
+    "id": "WATER-ELJ-001",
+    "districtId": "sidi_bouzid",
+    "districtName": "Sidi Bouzid",
+    "lat": 33.227569,
+    "lng": -8.549911
+  },
+  {
+    "id": "WATER-ELJ-002",
+    "districtId": "sidi_bouzid",
+    "districtName": "Sidi Bouzid",
+    "lat": 33.218875,
+    "lng": -8.557996
+  },
+  {
+    "id": "WATER-ELJ-003",
+    "districtId": "sidi_bouzid",
+    "districtName": "Sidi Bouzid",
+    "lat": 33.232158,
+    "lng": -8.554047
+  },
+  {
+    "id": "WATER-ELJ-004",
+    "districtId": "bennani",
+    "districtName": "Bennani",
+    "lat": 33.242754,
+    "lng": -8.538655
+  },
+  {
+    "id": "WATER-ELJ-005",
+    "districtId": "bennani",
+    "districtName": "Bennani",
+    "lat": 33.239372,
+    "lng": -8.53622
+  },
+  {
+    "id": "WATER-ELJ-006",
+    "districtId": "bennani",
+    "districtName": "Bennani",
+    "lat": 33.241875,
+    "lng": -8.535984
+  },
+  {
+    "id": "WATER-ELJ-007",
+    "districtId": "el_manar",
+    "districtName": "El Manar",
+    "lat": 33.24892,
+    "lng": -8.52716
+  },
+  {
+    "id": "WATER-ELJ-008",
+    "districtId": "el_manar",
+    "districtName": "El Manar",
+    "lat": 33.24941,
+    "lng": -8.52648
+  },
+  {
+    "id": "WATER-ELJ-009",
+    "districtId": "el_manar",
+    "districtName": "El Manar",
+    "lat": 33.24831,
+    "lng": -8.52791
+  },
+  {
+    "id": "WATER-ELJ-010",
+    "districtId": "sidi_moussa",
+    "districtName": "Sidi Moussa",
+    "lat": 33.233451,
+    "lng": -8.489166
+  },
+  {
+    "id": "WATER-ELJ-011",
+    "districtId": "sidi_moussa",
+    "districtName": "Sidi Moussa",
+    "lat": 33.23288,
+    "lng": -8.48852
+  },
+  {
+    "id": "WATER-ELJ-012",
+    "districtId": "sidi_moussa",
+    "districtName": "Sidi Moussa",
+    "lat": 33.23407,
+    "lng": -8.48994
+  },
+  {
+    "id": "WATER-ELJ-013",
+    "districtId": "essaada",
+    "districtName": "Essaada",
+    "lat": 33.242909,
+    "lng": -8.52803
+  },
+  {
+    "id": "WATER-ELJ-014",
+    "districtId": "essaada",
+    "districtName": "Essaada",
+    "lat": 33.24231,
+    "lng": -8.52742
+  },
+  {
+    "id": "WATER-ELJ-015",
+    "districtId": "essaada",
+    "districtName": "Essaada",
+    "lat": 33.24344,
+    "lng": -8.52871
+  },
+  {
+    "id": "WATER-ELJ-016",
+    "districtId": "mouilha",
+    "districtName": "Mouilha",
+    "lat": 33.250075,
+    "lng": -8.520951
+  },
+  {
+    "id": "WATER-ELJ-017",
+    "districtId": "mouilha",
+    "districtName": "Mouilha",
+    "lat": 33.24949,
+    "lng": -8.52027
+  },
+  {
+    "id": "WATER-ELJ-018",
+    "districtId": "mouilha",
+    "districtName": "Mouilha",
+    "lat": 33.25066,
+    "lng": -8.52162
+  },
+  {
+    "id": "WATER-ELJ-019",
+    "districtId": "cite_portugaise",
+    "districtName": "Cité Portugaise",
+    "lat": 33.25681,
+    "lng": -8.50282
+  },
+  {
+    "id": "WATER-ELJ-020",
+    "districtId": "cite_portugaise",
+    "districtName": "Cité Portugaise",
+    "lat": 33.25681,
+    "lng": -8.50282
+  },
+  {
+    "id": "WATER-ELJ-021",
+    "districtId": "cite_portugaise",
+    "districtName": "Cité Portugaise",
+    "lat": 33.25681,
+    "lng": -8.50282
+  },
+  {
+    "id": "WATER-ELJ-022",
+    "districtId": "najd",
+    "districtName": "Najd",
+    "lat": 33.226638,
+    "lng": -8.505685
+  },
+  {
+    "id": "WATER-ELJ-023",
+    "districtId": "najd",
+    "districtName": "Najd",
+    "lat": 33.22605,
+    "lng": -8.50502
+  },
+  {
+    "id": "WATER-ELJ-024",
+    "districtId": "najd",
+    "districtName": "Najd",
+    "lat": 33.22721,
+    "lng": -8.50633
+  },
+  {
+    "id": "WATER-ELJ-025",
+    "districtId": "les_facultes",
+    "districtName": "Les Facultés",
+    "lat": 33.225827,
+    "lng": -8.487105
+  },
+  {
+    "id": "WATER-ELJ-026",
+    "districtId": "les_facultes",
+    "districtName": "Les Facultés",
+    "lat": 33.22327,
+    "lng": -8.48648
+  },
+  {
+    "id": "WATER-ELJ-027",
+    "districtId": "les_facultes",
+    "districtName": "Les Facultés",
+    "lat": 33.22599,
+    "lng": -8.48996
+  },
+  {
+    "id": "WATER-ELJ-028",
+    "districtId": "quartier_jaouhara",
+    "districtName": "Quartier Jaouhara",
+    "lat": 33.22934,
+    "lng": -8.491396
+  },
+  {
+    "id": "WATER-ELJ-029",
+    "districtId": "quartier_jaouhara",
+    "districtName": "Quartier Jaouhara",
+    "lat": 33.22878,
+    "lng": -8.49076
+  },
+  {
+    "id": "WATER-ELJ-030",
+    "districtId": "quartier_jaouhara",
+    "districtName": "Quartier Jaouhara",
+    "lat": 33.22991,
+    "lng": -8.49204
+  }
+]
