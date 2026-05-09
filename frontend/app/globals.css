@@ -5,9 +5,6 @@
   font-family: "Poppins", sans-serif;
 }
 
-* :not(button, a) {
-  cursor: default;
-}
 
 body {
   margin: 0;

@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import type { DistrictTemperature, DistrictWater, RouteTrafficStats } from "@/lib/types";
 import {
   getTemperatureLevel,
@@ -324,26 +323,26 @@ export default function DashboardBar({
   if (!stats) return null;
 
   return (
-    <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col items-center gap-4 pointer-events-none">
+    <div className="absolute top-4 left-4 right-4 z-1000 flex flex-col items-center gap-4 pointer-events-none">
       {/* KPI Row */}
-      <div className="w-full flex items-stretch justify-around gap-4">
+      <div className="w-full flex items-stretch justify-around flex-wrap gap-4">
         {stats.kpis.map((kpi, idx) => (
           <div
             key={idx}
-            className="flex-1 bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-4 pointer-events-auto transition-all hover:bg-white/90"
+            className="flex-1 bg-white/70 backdrop-blur-xl border border-white/40 rounded-4xl p-4 pointer-events-auto transition-all hover:bg-white/90"
           >
             <div className="flex items-center gap-4">
               <div
-                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${kpi.color} flex items-center justify-center text-white [&>svg]:w-7 [&>svg]:h-7`}
+                className={`w-14 min-w-14 h-14 rounded-4xl bg-linear-to-br ${kpi.color} flex items-center justify-center text-white [&>svg]:w-7 [&>svg]:h-7`}
               >
                 {kpi.icon}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <p className="text- text-center font-bold text-gray-500 uppercase tracking-wider">
                   {kpi.label}
                 </p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-gray-900 tabular-nums">
+                  <span className="text-2xl font-black text-gray-900 tabular-nums">
                     {kpi.value}
                   </span>
                   <span className="text-sm font-bold text-gray-500">
@@ -397,7 +396,7 @@ export default function DashboardBar({
               </span>
             </div>
           )}
-          <span className="text-sm font-medium text-gray-500 tabular-nums">
+          <span className="text-sm font-medium text-gray-500 tabular-nums border-b-2 border-red-600">
             {new Date().toLocaleTimeString("fr-FR")}
           </span>
         </div>

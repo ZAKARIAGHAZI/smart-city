@@ -43,7 +43,7 @@ export default function TemperatureAlerts({
           >
             <div className="flex items-center gap-2 min-w-0">
               <div
-                className={`w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0 ${
+                className={`w-8 h-8 rounded-sm flex items-center justify-center shrink-0 ${
                   (alert.temperature ?? 0) >= 40
                     ? "bg-red-100 text-red-600"
                     : "bg-orange-100 text-orange-600"
@@ -69,7 +69,7 @@ export default function TemperatureAlerts({
             {!alert.acknowledged && (
               <button
                 onClick={() => onAcknowledge(alert.id)}
-                className="p-1 rounded hover:bg-gray-100 transition-colors flex-shrink-0 cursor-pointer"
+                className="p-1 rounded hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
                 title="Acquitter l'alerte"
               >
                 <Check className="w-3.5 h-3.5 text-gray-500" />

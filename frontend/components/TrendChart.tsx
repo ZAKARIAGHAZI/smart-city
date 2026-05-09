@@ -31,6 +31,32 @@ export default function TrendChart({ data, color, label, unit }: TrendChartProps
   const firstLiveIndex = data.findIndex(d => d.isLive);
   const liveStartTime = firstLiveIndex !== -1 ? data[firstLiveIndex].time : null;
 
+  // Determine fixed Y-axis domain based on the label type
+  let yDomainMin: number | 'auto' = 0;
+  let yDomainMax: number | 'auto' = 100;
+
+  switch (label) {
+    case "Température":
+      yDomainMin = 0;
+      yDomainMax = 50;
+      break;
+    case "AQI":
+      yDomainMin = 0;
+      yDomainMax = 300;
+      break;
+    case "Vitesse":
+      yDomainMin = 0;
+      yDomainMax = 120;
+      break;
+    case "Débit":
+      yDomainMin = 0;
+      yDomainMax = 30;
+      break;
+    default:
+      yDomainMin = 'auto';
+      yDomainMax = 'auto';
+  }
+
   return (
     <div className="w-full h-[220px] mt-4 relative">
       <ResponsiveContainer width="100%" height="100%">
@@ -56,7 +82,7 @@ export default function TrendChart({ data, color, label, unit }: TrendChartProps
           />
           
           <YAxis 
-            domain={['auto', 'auto']} 
+            domain={[yDomainMin, yDomainMax]} 
             tick={{ fontSize: 9, fill: '#9ca3af', fontWeight: 500 }} 
             axisLine={false}
             tickLine={false}

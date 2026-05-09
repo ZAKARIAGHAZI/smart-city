@@ -29,23 +29,22 @@ export default function WaterStats({
 
   const combinedHistory = useMemo(() => {
     // 1. 23 fixed historical points
-    const fixedHistory = initialHistory
-      .slice(0, 23)
-      .map(h => {
-        const date = new Date(h.time);
-        const hours = date.getHours().toString().padStart(2, '0');
-        return {
-          time: `${hours}:00`,
-          value: h.flow,
-          isLive: false
-        };
-      });
+    const fixedHistory = initialHistory.slice(0, 23).map((h) => {
+      const date = new Date(h.time);
+      const hours = date.getHours().toString().padStart(2, "0");
+      return {
+        time: `${hours}:00`,
+        value: h.flow,
+        isLive: false,
+      };
+    });
 
     // 2. 1 dynamic live point
     const livePoint = {
       time: "Direct",
-      value: avgFlow || (initialHistory.length > 23 ? initialHistory[23].flow : 0),
-      isLive: true
+      value:
+        avgFlow || (initialHistory.length > 23 ? initialHistory[23].flow : 0),
+      isLive: true,
     };
 
     return [...fixedHistory, livePoint];
@@ -53,21 +52,21 @@ export default function WaterStats({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="border border-gray-200 rounded-sm p-4 bg-white/50 backdrop-blur-sm shadow-sm">
-        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2">
+      <div className="border border-gray-200 rounded-4xl p-4 bg-white/50 backdrop-blur-sm">
+        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2 px-2">
           <TrendingUp className="w-5 h-5 text-blue-500" />
           Analyse Débit Eau
         </h3>
-        <TrendChart 
-          data={combinedHistory} 
-          color="#3b82f6" 
-          label="Débit" 
-          unit=" L/m" 
+        <TrendChart
+          data={combinedHistory}
+          color="#3b82f6"
+          label="Débit"
+          unit=" L/m"
         />
       </div>
 
-      <div className=" border border-gray-200 rounded-sm p-4 bg-white/50 backdrop-blur-sm shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <div className=" border border-gray-200 rounded-4xl p-4 bg-white/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-4 px-4">
           <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             Gestion par Quartier
           </h3>
@@ -83,7 +82,7 @@ export default function WaterStats({
         {!loading && districts.length > 0 && (
           <>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-blue-50 p-3 rounded-2xl text-center border border-blue-100">
+              <div className="bg-blue-50 p-3 rounded-4xl text-center border border-blue-100">
                 <span className="block text-[10px] uppercase font-bold text-blue-600 mb-1">
                   Volume Total
                 </span>
@@ -91,7 +90,7 @@ export default function WaterStats({
                   {totalVolume.toFixed(1)} L
                 </span>
               </div>
-              <div className="bg-cyan-50 p-3 rounded-2xl text-center border border-cyan-100">
+              <div className="bg-cyan-50 p-3 rounded-4xl text-center border border-cyan-100">
                 <span className="block text-[10px] uppercase font-bold text-cyan-600 mb-1">
                   Débit Moyen
                 </span>
@@ -109,9 +108,9 @@ export default function WaterStats({
                   return (
                     <div
                       key={d.district}
-                      className="flex flex-col gap-2 p-3 bg-white/80 rounded-2xl border border-gray-100 transition-all hover:shadow-md"
+                      className="flex items-center justify-between gap-2 p-3 px-5 rounded-4xl border-2 border-gray-100 transition-all"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col items-start">
                         <span className="text-sm font-bold text-gray-700">
                           {d.district}
                         </span>
@@ -122,18 +121,20 @@ export default function WaterStats({
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
                         <div className="flex items-center gap-2">
                           <div
                             className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.1)]"
                             style={{ backgroundColor: phColor }}
                           />
-                          <span className="text-xs font-semibold text-gray-500">
-                            pH {d.avg_ph.toFixed(2)}
+                          <span className="text-base font-black text-gray-500">
+                            <span className="text-sm">pH</span> {d.avg_ph.toFixed(2)}
                           </span>
                         </div>
+                        <span>|</span>
                         <span className="text-base font-black text-blue-600">
-                          {d.avg_flow.toFixed(2)} <span className="text-[10px]">L/min</span>
+                          {d.avg_flow.toFixed(2)}{" "}
+                          <span className="text-[10px]">L/min</span>
                         </span>
                       </div>
                     </div>

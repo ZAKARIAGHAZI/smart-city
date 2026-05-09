@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  Route,
-  Activity,
-  Radio,
-  Wifi,
-  WifiOff,
-  Thermometer,
-} from "lucide-react";
+import { Activity, Thermometer } from "lucide-react";
 import { SMART_CITY_DOMAINS } from "@/data/domains";
+import SparkInsights from "./SparkInsights";
 
 interface ControlsProps {
   mode: string;
@@ -26,10 +20,10 @@ export default function Controls({
   sensorCount,
 }: ControlsProps) {
   return (
-    <aside className="w-sm min-w-80 h-screen /40 backdrop-blur-md border-r border-gray-200 flex flex-col overflow-y-auto bg-[#fafaf8]">
+    <aside className="w-full h-screen /40 backdrop-blur-md border-r border-gray-200 flex flex-col overflow-y-auto bg-[#fafaf8]">
       {/* Header */}
       <div className="px-5 pt-6 pb-5 mb-6">
-        <h1 className="text-4xl font-bold tracking-wide text-center">
+        <h1 className="text-4xl font-bold tracking-wide text-start">
           El Jadida
         </h1>
       </div>
@@ -67,6 +61,10 @@ export default function Controls({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="px-5 mt-4 mb-2">
+        <SparkInsights />
       </div>
 
       {/* Stats Footer */}

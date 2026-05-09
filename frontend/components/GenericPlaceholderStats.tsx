@@ -28,7 +28,7 @@ export default function GenericPlaceholderStats({
       </div>
 
       <div className="text-xs text-gray-500 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100 flex gap-2 items-start">
-        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <Info className="w-4 h-4 shrink-0 mt-0.5" />
         <p>
           Le flux Kafka pour le domaine <strong>{title}</strong> n'est pas
           encore connecté. Espace réservé pour la future intégration des données

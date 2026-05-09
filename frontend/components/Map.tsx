@@ -41,7 +41,13 @@ function MapResizer({ dimensions }: { dimensions: any }) {
 }
 
 /* ── Routes overlay with zoom-adaptive weight ── */
-function RoutesOverlay({ mode, trafficStats }: { mode: string; trafficStats: Map<string, RouteTrafficStats> }) {
+function RoutesOverlay({
+  mode,
+  trafficStats,
+}: {
+  mode: string;
+  trafficStats: Map<string, RouteTrafficStats>;
+}) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
 
@@ -69,12 +75,21 @@ function RoutesOverlay({ mode, trafficStats }: { mode: string; trafficStats: Map
 
         if (isTrafficMode && liveStats) {
           color = getTrafficStatusColor(liveStats.dominant_status);
-          const statusWeight = { fluide: 3, dense: 5, congestion: 7, forte_congestion: 9 };
-          weight = Math.max(2, (statusWeight[liveStats.dominant_status] || 3) * scale * 0.2);
+          const statusWeight = {
+            fluide: 3,
+            dense: 5,
+            congestion: 7,
+            forte_congestion: 9,
+          };
+          weight = Math.max(
+            2,
+            (statusWeight[liveStats.dominant_status] || 3) * scale * 0.2,
+          );
           opacity = 0.9;
-          dashArray = liveStats.dominant_status === "forte_congestion"
-            ? `${10 * scale} ${6 * scale}`
-            : undefined;
+          dashArray =
+            liveStats.dominant_status === "forte_congestion"
+              ? `${10 * scale} ${6 * scale}`
+              : undefined;
         } else if (isTrafficMode) {
           color = "#9ca3af";
           weight = Math.max(2, 3 * scale);
@@ -100,24 +115,41 @@ function RoutesOverlay({ mode, trafficStats }: { mode: string; trafficStats: Map
                 </strong>
                 {isTrafficMode && liveStats ? (
                   <div style={{ marginTop: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 3,
+                      }}
+                    >
                       <span
                         style={{
                           display: "inline-block",
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          backgroundColor: getTrafficStatusColor(liveStats.dominant_status),
+                          backgroundColor: getTrafficStatusColor(
+                            liveStats.dominant_status,
+                          ),
                         }}
                       />
                       <span style={{ fontWeight: 700 }}>
                         {getTrafficStatusLabel(liveStats.dominant_status)}
                       </span>
                     </div>
-                    <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.6 }}>
-                      🚗 {liveStats.total_vehicles} véhicules<br />
-                      ⚡ {liveStats.avg_speed.toFixed(1)} km/h<br />
-                      📊 Congestion : {liveStats.avg_congestion.toFixed(2)}<br />
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "#6b7280",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      🚗 {liveStats.total_vehicles} véhicules
+                      <br />⚡ {liveStats.avg_speed.toFixed(1)} km/h
+                      <br />
+                      📊 Congestion : {liveStats.avg_congestion.toFixed(2)}
+                      <br />
                       📡 {liveStats.sensor_count} capteurs
                     </div>
                   </div>
@@ -139,7 +171,7 @@ export default function Map() {
   const [mode, setMode] = useState<string>("temperature");
 
   // Sidebar State
-  const [leftWidth, setLeftWidth] = useState(320);
+  const [leftWidth, setLeftWidth] = useState(520);
   const [rightWidth, setRightWidth] = useState(620);
   const [isResizingLeft, setIsResizingLeft] = useState(false);
   const [isResizingRight, setIsResizingRight] = useState(false);
@@ -254,7 +286,7 @@ export default function Map() {
       {/* Left Sidebar */}
       <div
         style={{ width: leftWidth }}
-        className="h-full bg-[#fafaf8] relative transition-[width] duration-75 ease-out overflow-hidden flex-shrink-0"
+        className="h-full bg-[#fafaf8] relative transition-[width] duration-75 ease-out overflow-hidden shrink-0"
       >
         <Controls
           mode={mode}
@@ -268,7 +300,7 @@ export default function Map() {
       {/* Left Resizer */}
       <div
         onMouseDown={startResizingLeft}
-        className={`w-1.5 h-full cursor-col-resize hover:bg-blue-500/30 transition-colors z-[1100] flex-shrink-0 ${isResizingLeft ? "bg-blue-500" : "bg-gray-200"}`}
+        className={`w-1.5 h-full cursor-col-resize hover:bg-blue-500/30 transition-colors z-[1100] shrink-0 ${isResizingLeft ? "bg-blue-500" : "bg-gray-200"}`}
       />
 
       {/* Map Area */}
@@ -402,13 +434,13 @@ export default function Map() {
       {/* Right Resizer */}
       <div
         onMouseDown={startResizingRight}
-        className={`relative z-9999 w-1.5 h-full cursor-col-resize hover:bg-blue-500/30 transition-colors z-[1100] flex-shrink-0 ${isResizingRight ? "bg-blue-500" : "bg-gray-200"}`}
+        className={`relative z-9999 w-1.5 h-full cursor-col-resize hover:bg-blue-500/30 transition-colors z-[1100] shrink-0 ${isResizingRight ? "bg-blue-500" : "bg-gray-200"}`}
       />
 
       {/* Right Sidebar */}
       <div
         style={{ width: rightWidth }}
-        className="h-full bg-[#fafaf8] relative transition-[width] duration-75 ease-out overflow-y-auto flex-shrink-0"
+        className="h-full bg-[#fafaf8] relative transition-[width] duration-75 ease-out overflow-y-auto shrink-0"
       >
         <div className="flex flex-col gap-2 min-w-[250px]">
           {mode === "temperature" ? (

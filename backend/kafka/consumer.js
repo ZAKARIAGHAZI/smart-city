@@ -1,7 +1,5 @@
 const { Kafka } = require("kafkajs");
-const EnvironmentReading = require("../models/EnvironmentReading");
-const WaterReading = require("../models/WaterReading");
-const TrafficReading = require("../models/TrafficReading");
+const SparkAggregation = require("../models/SparkAggregation");
 
 const kafka = new Kafka({
   clientId: "smartcity-multi-service",
@@ -18,11 +16,18 @@ const TOPICS = {
   TRAFFIC: "smartcity.traffic.readings"
 };
 
+const SPARK_TOPICS = {
+  ENVIRONMENT: "smartcity.spark.environment",
+  WATER: "smartcity.spark.water",
+  TRAFFIC: "smartcity.spark.traffic"
+};
+
 async function startKafkaConsumer(io) {
   await consumer.connect();
   console.log("Kafka Consumer Connected");
 
-  await consumer.subscribe({ topics: Object.values(TOPICS), fromBeginning: false });
+  const allTopics = [...Object.values(TOPICS), ...Object.values(SPARK_TOPICS)];
+  await consumer.subscribe({ topics: allTopics, fromBeginning: false });
 
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
@@ -30,86 +35,60 @@ async function startKafkaConsumer(io) {
         const value = JSON.parse(message.value.toString());
         const dataArray = Array.isArray(value) ? value : [value];
 
+        // --- Données Brutes : ON NE STOCKE PLUS, ON EMIT SEULEMENT POUR LE LIVE ---
         if (topic === TOPICS.ENVIRONMENT) {
-          const docs = dataArray.map(data => ({
-            sensor_id: data.sensor_id,
-            city: data.city,
-            district: data.district,
-            temperature: Number(data.temperature),
-            unit: data.temperature_unit || data.unit,
-            air_quality: data.air_quality,
-            timestamp: data.timestamp ? new Date(data.timestamp) : new Date()
-          }));
-          const saved = await EnvironmentReading.insertMany(docs);
-          io.emit("temperature:new", saved);
-          
-          // Alerts
-          saved.forEach(d => {
-            if (d.temperature >= 35) io.emit("temperature:alert", d);
-          });
-          console.log(`[Kafka] Processed ${saved.length} Environment readings`);
+          io.emit("temperature:new", dataArray);
         } 
-        
         else if (topic === TOPICS.WATER) {
-          const docs = dataArray.map(data => ({
-            sensor_id: data.sensor_id,
-            city: data.city,
-            district: data.district,
-            type: data.type,
-            water_flow: data.water_flow,
-            water_quality: data.water_quality,
-            timestamp: data.timestamp ? new Date(data.timestamp) : new Date()
-          }));
-          const saved = await WaterReading.insertMany(docs);
-          io.emit("water:new", saved);
-          
-          // Alerts (e.g., pH out of range)
-          saved.forEach(d => {
-            if (d.water_quality && (d.water_quality.ph < 6.5 || d.water_quality.ph > 8.5)) {
-              io.emit("water:alert", {
-                sensor_id: d.sensor_id,
-                district: d.district,
-                type: "pH Alert",
-                value: d.water_quality.ph,
-                timestamp: d.timestamp
-              });
-            }
-          });
-          console.log(`[Kafka] Processed ${saved.length} Water readings`);
+          io.emit("water:new", dataArray);
+        }
+        else if (topic === TOPICS.TRAFFIC) {
+          io.emit("traffic:new", dataArray);
         }
 
-        else if (topic === TOPICS.TRAFFIC) {
-          const docs = dataArray.map(data => ({
-            sensor_id: data.sensor_id,
-            route_id: data.route_id,
-            city: data.city,
-            sensor_type: data.sensor_type,
-            observation_time_s: data.observation_time_s,
-            occupied_time_s: data.occupied_time_s,
-            occupancy_rate: data.occupancy_rate,
-            congestion_index: data.congestion_index,
-            average_speed_kmh: data.average_speed_kmh,
-            vehicle_count: data.vehicle_count,
-            vehicle_detected: data.vehicle_detected,
-            traffic_status: data.traffic_status,
-            timestamp: data.timestamp ? new Date(data.timestamp) : new Date()
-          }));
-          const saved = await TrafficReading.insertMany(docs);
-          io.emit("traffic:new", saved);
-
-          // Alerts on heavy congestion
-          saved.forEach(d => {
-            if (d.traffic_status === "forte_congestion") {
-              io.emit("traffic:alert", {
-                sensor_id: d.sensor_id,
-                route_id: d.route_id,
-                congestion_index: d.congestion_index,
-                average_speed_kmh: d.average_speed_kmh,
-                timestamp: d.timestamp
-              });
+        // --- Spark Topics : ON STOCKE POUR L'HISTORIQUE ET ON EMIT ---
+        else if (topic === SPARK_TOPICS.ENVIRONMENT) {
+          const entry = new SparkAggregation({
+            type: "environment",
+            district: value.district,
+            window_start: value.window?.start,
+            window_end: value.window?.end,
+            data: {
+              avg_temperature: value.avg_temperature,
+              avg_air_quality: value.avg_air_quality
             }
           });
-          console.log(`[Kafka] Processed ${saved.length} Traffic readings`);
+          await entry.save();
+          io.emit("spark:environment", value);
+        }
+        else if (topic === SPARK_TOPICS.WATER) {
+          const entry = new SparkAggregation({
+            type: "water",
+            district: value.district,
+            window_start: value.window?.start,
+            window_end: value.window?.end,
+            data: {
+              avg_flow_rate: value.avg_flow_rate,
+              avg_ph: value.avg_ph,
+              avg_turbidity: value.avg_turbidity
+            }
+          });
+          await entry.save();
+          io.emit("spark:water", value);
+        }
+        else if (topic === SPARK_TOPICS.TRAFFIC) {
+          const entry = new SparkAggregation({
+            type: "traffic",
+            route_id: value.route_id,
+            window_start: value.window?.start,
+            window_end: value.window?.end,
+            data: {
+              avg_speed: value.avg_speed,
+              max_congestion: value.max_congestion
+            }
+          });
+          await entry.save();
+          io.emit("spark:traffic", value);
         }
       } catch (error) {
         console.error(`[Kafka] Error processing topic ${topic}:`, error);

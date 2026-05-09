@@ -97,13 +97,13 @@ export default function EnvironmentSensorsLayer({
 
         // Calculate dynamic size based on zoom (base size 8 at zoom 13)
         const scale = Math.pow(1.4, zoom - 13);
-        const currentSize = Math.max(4, Math.min(32, Math.round(8 * scale)));
+        const currentSize = Math.max(2, Math.min(8, Math.round(4 * scale)));
 
         // Create a custom HTML icon with dynamic pixel sizes
         const iconHtml = `
-          <div style="position: relative; width: ${currentSize}px; height: ${currentSize}px;">
-            ${isAnimating ? `<span style="background-color: ${color}; width: ${currentSize * 1.8}px; height: ${currentSize * 1.8}px; left: ${-currentSize * 0.4}px; top: ${-currentSize * 0.4}px;" class="animate-ping absolute inline-flex rounded-full opacity-75"></span>` : ""}
-            <span class="relative inline-flex rounded-full border-[1.5px] border-white" style="width: ${currentSize}px; height: ${currentSize}px; background-color: ${color};"></span>
+          <div style="position: relative; width: ${currentSize}px; height: ${currentSize}px; display: flex; align-items: center; justify-content: center;">
+            ${isAnimating ? `<span style="background-color: ${color}; width: ${currentSize * 2.5}px; height: ${currentSize * 2.5}px; position: absolute;" class="animate-ping rounded-full opacity-75"></span>` : ""}
+            <span class="relative inline-flex rounded-full border-[1.5px] border-white" style="width: ${currentSize}px; height: ${currentSize}px; background-color: ${color}; flex-shrink: 0;"></span>
           </div>
         `;
 

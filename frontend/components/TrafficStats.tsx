@@ -1,14 +1,27 @@
 "use client";
 
 import { useMemo } from "react";
-import { Car, Gauge, Activity, Wifi, WifiOff, TrendingUp, AlertTriangle } from "lucide-react";
+import {
+  Car,
+  Gauge,
+  Activity,
+  Wifi,
+  WifiOff,
+  TrendingUp,
+  AlertTriangle,
+} from "lucide-react";
 import type { RouteTrafficStats } from "@/lib/types";
 import { getTrafficStatusColor, getTrafficStatusLabel } from "@/lib/types";
 import TrendChart from "./TrendChart";
 
 interface TrafficStatsProps {
   routeStats: Map<string, RouteTrafficStats>;
-  history: { time: string; avg_speed: number; avg_congestion: number; total_vehicles: number }[];
+  history: {
+    time: string;
+    avg_speed: number;
+    avg_congestion: number;
+    total_vehicles: number;
+  }[];
   connected: boolean;
   loading: boolean;
 }
@@ -28,11 +41,13 @@ export default function TrafficStats({
 
   const totalVehicles = routes.reduce((s, r) => s + r.total_vehicles, 0);
   const congestionRoutes = routes.filter(
-    r => r.dominant_status === "congestion" || r.dominant_status === "forte_congestion"
+    (r) =>
+      r.dominant_status === "congestion" ||
+      r.dominant_status === "forte_congestion",
   ).length;
 
   const speedHistory = useMemo(() => {
-    const fixedHistory = initialHistory.slice(0, 23).map(h => {
+    const fixedHistory = initialHistory.slice(0, 23).map((h) => {
       const date = new Date(h.time);
       const hours = date.getHours().toString().padStart(2, "0");
       return { time: `${hours}:00`, value: h.avg_speed, isLive: false };
@@ -40,7 +55,9 @@ export default function TrafficStats({
 
     const livePoint = {
       time: "Direct",
-      value: globalAvgSpeed || (initialHistory.length > 23 ? initialHistory[23].avg_speed : 0),
+      value:
+        globalAvgSpeed ||
+        (initialHistory.length > 23 ? initialHistory[23].avg_speed : 0),
       isLive: true,
     };
 
@@ -50,7 +67,7 @@ export default function TrafficStats({
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Speed Trend Chart */}
-      <div className="border border-gray-200 rounded-sm p-4 bg-white/50 backdrop-blur-sm shadow-sm">
+      <div className="border border-gray-200 rounded-sm p-4 bg-white/50 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-emerald-500" />
@@ -60,11 +77,16 @@ export default function TrafficStats({
             {speedHistory.length} Points
           </span>
         </div>
-        <TrendChart data={speedHistory} color="#22c55e" label="Vitesse" unit=" km/h" />
+        <TrendChart
+          data={speedHistory}
+          color="#22c55e"
+          label="Vitesse"
+          unit=" km/h"
+        />
       </div>
 
       {/* Per-route stats */}
-      <div className="border border-gray-200 rounded-sm p-4 bg-white/50 backdrop-blur-sm shadow-sm">
+      <div className="border border-gray-200 rounded-sm p-4 bg-white/50 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             Trafic par Route
@@ -105,14 +127,22 @@ export default function TrafficStats({
                   {totalVehicles.toLocaleString()}
                 </span>
               </div>
-              <div className={`p-3 rounded-2xl text-center border ${congestionRoutes > 0 ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"}`}>
-                <span className={`block text-[10px] uppercase font-bold mb-1 ${congestionRoutes > 0 ? "text-red-600" : "text-green-600"}`}>
+              <div
+                className={`p-3 rounded-2xl text-center border ${congestionRoutes > 0 ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"}`}
+              >
+                <span
+                  className={`block text-[10px] uppercase font-bold mb-1 ${congestionRoutes > 0 ? "text-red-600" : "text-green-600"}`}
+                >
                   Congestion
                 </span>
-                <span className={`text-xl font-black ${congestionRoutes > 0 ? "text-red-800" : "text-green-800"}`}>
+                <span
+                  className={`text-xl font-black ${congestionRoutes > 0 ? "text-red-800" : "text-green-800"}`}
+                >
                   {congestionRoutes}
                 </span>
-                <span className={`text-[10px] ml-1 ${congestionRoutes > 0 ? "text-red-600" : "text-green-600"}`}>
+                <span
+                  className={`text-[10px] ml-1 ${congestionRoutes > 0 ? "text-red-600" : "text-green-600"}`}
+                >
                   routes
                 </span>
               </div>
@@ -122,18 +152,18 @@ export default function TrafficStats({
             <div className="space-y-3">
               {routes
                 .sort((a, b) => b.avg_congestion - a.avg_congestion)
-                .map(r => {
+                .map((r) => {
                   const statusColor = getTrafficStatusColor(r.dominant_status);
                   const statusLabel = getTrafficStatusLabel(r.dominant_status);
                   return (
                     <div
                       key={r.route_id}
-                      className="flex flex-col gap-2 p-3 bg-white/80 rounded-2xl border border-gray-100 transition-all hover:shadow-md"
+                      className="flex flex-col gap-2 p-3 bg-white/80 rounded-2xl border border-gray-100 transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-3 h-3 rounded-full shadow-sm animate-pulse"
+                            className="w-3 h-3 rounded-full animate-pulse"
                             style={{ backgroundColor: statusColor }}
                           />
                           <span className="text-sm font-bold text-gray-700 uppercase">

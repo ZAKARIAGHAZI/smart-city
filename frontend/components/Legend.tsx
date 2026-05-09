@@ -73,7 +73,7 @@ export default function Legend({
             {(["low", "medium", "high", "critical"] as const).map((level) => (
               <div key={level} className="flex items-center gap-2">
                 <div
-                  className="w-8 rounded-sm flex-shrink-0"
+                  className="w-8 rounded-sm shrink-0"
                   style={{
                     backgroundColor: getTrafficColor(level),
                     height:
