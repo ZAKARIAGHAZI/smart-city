@@ -28,26 +28,25 @@ export default function WaterStats({
       : 0;
 
   const combinedHistory = useMemo(() => {
-    // 1. 23 fixed historical points
-    const fixedHistory = initialHistory.slice(0, 23).map((h) => {
-      const date = new Date(h.time);
-      const hours = date.getHours().toString().padStart(2, "0");
-      return {
-        time: `${hours}:00`,
-        value: h.flow,
-        isLive: false,
-      };
-    });
+    const now = new Date();
+    const timeline = [];
+    
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+      const hourStr = d.getHours().toString().padStart(2, "0") + ":00";
+      
+      const match = initialHistory.find(h => {
+        const hDate = new Date(h.time);
+        return hDate.getHours() === d.getHours() && hDate.getDate() === d.getDate();
+      });
 
-    // 2. 1 dynamic live point
-    const livePoint = {
-      time: "Direct",
-      value:
-        avgFlow || (initialHistory.length > 23 ? initialHistory[23].flow : 0),
-      isLive: true,
-    };
-
-    return [...fixedHistory, livePoint];
+      timeline.push({
+        time: i === 0 ? "Direct" : hourStr,
+        value: i === 0 ? (avgFlow || (match ? match.flow : 0)) : (match ? match.flow : 0),
+        isLive: i === 0
+      });
+    }
+    return timeline;
   }, [initialHistory, avgFlow]);
 
   return (

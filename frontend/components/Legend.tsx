@@ -23,12 +23,10 @@ export default function Legend({
   const stepSize = (max - min) / steps;
 
   return (
-    <div className="absolute bottom-6 right-6 z-[1000] /40 backdrop-blur-md border border-gray-200 rounded-sm p-2 w-[220px]  animate-[slideUp_0.3s_ease-out]">
+    <div className="absolute bottom-6 right-6 z-1000 /40 backdrop-blur-md border border-gray-200 rounded-sm p-2 w-[220px]  animate-[slideUp_0.3s_ease-out]">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-gray-700">
-          {getLucideIcon(metric.key, "w-5 h-5")}
-        </span>
+        <span className="text-gray-700 text-xl">{metric.icon}</span>
         <h3 className="text-sm font-bold text-gray-800">
           {metric.label}hhhhhhhh
           {metric.unit && (
@@ -39,7 +37,7 @@ export default function Legend({
         </h3>
       </div>
 
-      {/* Gradient Bar */}
+      {/* linear Bar */}
       <div className="mb-3">
         <div className="flex h-2.5 rounded-full overflow-hidden">
           {metric.colors.map((color, i) => (

@@ -17,26 +17,26 @@ router.get("/temperatures/latest", async (req, res) => {
 
 router.get("/temperatures/avg-by-district", async (req, res) => {
   try {
-    const result = await EnvironmentReading.aggregate([
+    const SparkAggregation = require("../models/SparkAggregation");
+    const result = await SparkAggregation.aggregate([
+      { $match: { type: "environment" } },
+      { $sort: { timestamp: -1 } },
       {
         $group: {
           _id: "$district",
-          avgTemperature: { $avg: "$temperature" },
-          maxTemperature: { $max: "$temperature" },
-          minTemperature: { $min: "$temperature" },
-          avgAqi: { $avg: "$air_quality.aqi" },
-          count: { $sum: 1 },
-          lastUpdate: { $max: "$timestamp" }
+          avgTemperature: { $first: "$data.avg_temperature" },
+          avgAqi: { $first: "$data.avg_air_quality" },
+          lastUpdate: { $first: "$timestamp" }
         }
       }
     ]);
     res.json(result.map(item => ({
       district: item._id,
       avg_temperature: item.avgTemperature,
-      max_temperature: item.maxTemperature,
-      min_temperature: item.minTemperature,
+      max_temperature: item.avgTemperature, // Spark provides avg
+      min_temperature: item.avgTemperature,
       avg_aqi: item.avgAqi,
-      sensor_count: item.count,
+      sensor_count: 1, // Aggregated window
       last_update: item.lastUpdate
     })));
   } catch (err) {
@@ -47,8 +47,16 @@ router.get("/temperatures/avg-by-district", async (req, res) => {
 router.get("/temperatures/history", async (req, res) => {
   try {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const history = await EnvironmentReading.aggregate([
-      { $match: { timestamp: { $gte: twentyFourHoursAgo } } },
+    const SparkAggregation = require("../models/SparkAggregation");
+    
+    // Group by hour from Spark aggregated windows
+    const history = await SparkAggregation.aggregate([
+      { 
+        $match: { 
+          type: "environment",
+          timestamp: { $gte: twentyFourHoursAgo } 
+        } 
+      },
       {
         $group: {
           _id: {
@@ -57,16 +65,17 @@ router.get("/temperatures/history", async (req, res) => {
             day: { $dayOfMonth: "$timestamp" },
             hour: { $hour: "$timestamp" }
           },
-          avgTemperature: { $avg: "$temperature" },
-          avgAqi: { $avg: "$air_quality.aqi" },
+          avgTemp: { $avg: "$data.avg_temperature" },
+          avgAqi: { $avg: "$data.avg_air_quality" },
           timestamp: { $min: "$timestamp" }
         }
       },
       { $sort: { timestamp: 1 } }
     ]);
+    
     res.json(history.map(h => ({
       time: h.timestamp,
-      temperature: h.avgTemperature,
+      temperature: h.avgTemp,
       aqi: h.avgAqi
     })));
   } catch (err) {
@@ -87,26 +96,27 @@ router.get("/water/latest", async (req, res) => {
 
 router.get("/water/stats-by-district", async (req, res) => {
   try {
-    const result = await WaterReading.aggregate([
+    const SparkAggregation = require("../models/SparkAggregation");
+    const result = await SparkAggregation.aggregate([
+      { $match: { type: "water" } },
+      { $sort: { timestamp: -1 } },
       {
         $group: {
           _id: "$district",
-          avgFlow: { $avg: "$water_flow.flow_rate_l_min" },
-          totalVolume: { $sum: "$water_flow.volume_l" },
-          avgPh: { $avg: "$water_quality.ph" },
-          avgTurbidity: { $avg: "$water_quality.turbidity_ntu" },
-          count: { $sum: 1 },
-          lastUpdate: { $max: "$timestamp" }
+          avgFlow: { $first: "$data.avg_flow_rate" },
+          avgPh: { $first: "$data.avg_ph" },
+          avgTurbidity: { $first: "$data.avg_turbidity" },
+          lastUpdate: { $first: "$timestamp" }
         }
       }
     ]);
     res.json(result.map(item => ({
       district: item._id,
       avg_flow: item.avgFlow,
-      total_volume: item.totalVolume,
+      total_volume: 0, // Spark provides rates
       avg_ph: item.avgPh,
       avg_turbidity: item.avgTurbidity,
-      sensor_count: item.count,
+      sensor_count: 1,
       last_update: item.lastUpdate
     })));
   } catch (err) {
@@ -117,8 +127,15 @@ router.get("/water/stats-by-district", async (req, res) => {
 router.get("/water/history", async (req, res) => {
   try {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const history = await WaterReading.aggregate([
-      { $match: { timestamp: { $gte: twentyFourHoursAgo } } },
+    const SparkAggregation = require("../models/SparkAggregation");
+    
+    const history = await SparkAggregation.aggregate([
+      { 
+        $match: { 
+          type: "water",
+          timestamp: { $gte: twentyFourHoursAgo } 
+        } 
+      },
       {
         $group: {
           _id: {
@@ -127,7 +144,7 @@ router.get("/water/history", async (req, res) => {
             day: { $dayOfMonth: "$timestamp" },
             hour: { $hour: "$timestamp" }
           },
-          avgFlow: { $avg: "$water_flow.flow_rate_l_min" },
+          avgFlow: { $avg: "$data.avg_flow_rate" },
           timestamp: { $min: "$timestamp" }
         }
       },
@@ -155,26 +172,26 @@ router.get("/traffic/latest", async (req, res) => {
 
 router.get("/traffic/stats-by-route", async (req, res) => {
   try {
-    const result = await TrafficReading.aggregate([
+    const SparkAggregation = require("../models/SparkAggregation");
+    const result = await SparkAggregation.aggregate([
+      { $match: { type: "traffic" } },
+      { $sort: { timestamp: -1 } },
       {
         $group: {
           _id: "$route_id",
-          avgSpeed: { $avg: "$average_speed_kmh" },
-          avgOccupancy: { $avg: "$occupancy_rate" },
-          avgCongestion: { $avg: "$congestion_index" },
-          totalVehicles: { $sum: "$vehicle_count" },
-          count: { $sum: 1 },
-          lastUpdate: { $max: "$timestamp" }
+          avgSpeed: { $first: "$data.avg_speed" },
+          maxCongestion: { $first: "$data.max_congestion" },
+          lastUpdate: { $first: "$timestamp" }
         }
       }
     ]);
     res.json(result.map(item => ({
       route_id: item._id,
       avg_speed: item.avgSpeed,
-      avg_occupancy: item.avgOccupancy,
-      avg_congestion: item.avgCongestion,
-      total_vehicles: item.totalVehicles,
-      sensor_count: item.count,
+      avg_occupancy: 0,
+      avg_congestion: item.maxCongestion,
+      total_vehicles: 0,
+      sensor_count: 1,
       last_update: item.lastUpdate
     })));
   } catch (err) {
@@ -185,8 +202,15 @@ router.get("/traffic/stats-by-route", async (req, res) => {
 router.get("/traffic/history", async (req, res) => {
   try {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const history = await TrafficReading.aggregate([
-      { $match: { timestamp: { $gte: twentyFourHoursAgo } } },
+    const SparkAggregation = require("../models/SparkAggregation");
+    
+    const history = await SparkAggregation.aggregate([
+      { 
+        $match: { 
+          type: "traffic",
+          timestamp: { $gte: twentyFourHoursAgo } 
+        } 
+      },
       {
         $group: {
           _id: {
@@ -195,10 +219,8 @@ router.get("/traffic/history", async (req, res) => {
             day: { $dayOfMonth: "$timestamp" },
             hour: { $hour: "$timestamp" }
           },
-          avgSpeed: { $avg: "$average_speed_kmh" },
-          avgOccupancy: { $avg: "$occupancy_rate" },
-          avgCongestion: { $avg: "$congestion_index" },
-          totalVehicles: { $sum: "$vehicle_count" },
+          avgSpeed: { $avg: "$data.avg_speed" },
+          avgCongestion: { $avg: "$data.max_congestion" },
           timestamp: { $min: "$timestamp" }
         }
       },
@@ -207,9 +229,7 @@ router.get("/traffic/history", async (req, res) => {
     res.json(history.map(h => ({
       time: h.timestamp,
       avg_speed: h.avgSpeed,
-      avg_occupancy: h.avgOccupancy,
-      avg_congestion: h.avgCongestion,
-      total_vehicles: h.totalVehicles
+      avg_congestion: h.avgCongestion
     })));
   } catch (err) {
     res.status(500).json({ error: err.message });

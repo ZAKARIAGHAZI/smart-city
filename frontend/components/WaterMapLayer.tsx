@@ -3,7 +3,6 @@
 import { GeoJSON } from "react-leaflet";
 import type { FeatureCollection, Feature } from "geojson";
 import type { Layer } from "leaflet";
-import { zonesGeoJSON } from "@/data/json/zones.json"; // Adjusted path to use JSON directly or keep via zones.ts
 import { zonesGeoJSON as zonesData } from "@/data/zones"; 
 import type { DistrictWater } from "@/lib/types";
 import { getWaterFlowColor, getPhColor } from "@/lib/types";

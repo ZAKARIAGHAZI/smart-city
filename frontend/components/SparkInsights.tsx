@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { getSocket } from "@/lib/socket";
-import { Zap, Activity, Droplet } from "lucide-react";
+import { Zap, Activity, Droplet, Loader } from "lucide-react";
 
 interface SparkEnvironmentData {
   district: string;
@@ -26,7 +26,7 @@ interface SparkTrafficData {
   window: { start: string; end: string };
 }
 
-export default function SparkInsights() {
+const SparkInsights = memo(() => {
   const [envData, setEnvData] = useState<SparkEnvironmentData[]>([]);
   const [waterData, setWaterData] = useState<SparkWaterData[]>([]);
   const [trafficData, setTrafficData] = useState<SparkTrafficData[]>([]);
@@ -90,11 +90,12 @@ export default function SparkInsights() {
 
   if (envData.length === 0 && waterData.length === 0 && trafficData.length === 0) {
     return (
-      <div className="p-4 bg-white/50 border border-orange-200 rounded-lg mt-4 animate-pulse">
-        <h3 className="text-sm font-bold text-orange-600 flex items-center gap-2">
-          <Zap className="w-4 h-4" /> En attente de Spark Streaming...
+      <div className="p-8 bg-orange-50/50 border border-orange-100 rounded-3xl mt-4 flex flex-col items-center justify-center text-center">
+        <Loader className="w-8 h-8 text-orange-500 animate-spin mb-4" />
+        <h3 className="text-sm font-bold text-orange-600 uppercase tracking-widest">
+          En attente de Spark Streaming
         </h3>
-        <p className="text-xs text-gray-500 mt-2">Le moteur Big Data est en cours de traitement de la première fenêtre temporelle.</p>
+        <p className="text-xs text-gray-500 mt-2 max-w-[200px]">Le moteur Big Data traite actuellement la première fenêtre temporelle.</p>
       </div>
     );
   }
@@ -167,4 +168,6 @@ export default function SparkInsights() {
       )}
     </div>
   );
-}
+});
+
+export default SparkInsights;

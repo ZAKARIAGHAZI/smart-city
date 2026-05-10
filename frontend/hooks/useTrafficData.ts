@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { getSocket } from "@/lib/socket";
 import type { TrafficReading, RouteTrafficStats, TrafficStatus } from "@/lib/types";
 
@@ -45,14 +45,14 @@ function buildRouteStats(readings: TrafficReading[]): Map<string, RouteTrafficSt
   return stats;
 }
 
-export function useTrafficData() {
+export function useTrafficData(enabled: boolean = true) {
   const [latestReadings, setLatestReadings] = useState<TrafficReading[]>([]);
-  const [routeStats, setRouteStats] = useState<Map<string, RouteTrafficStats>>(new Map());
   const [history, setHistory] = useState<{ time: string; avg_speed: number; avg_congestion: number; total_vehicles: number }[]>([]);
   const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   const fetchInitialData = useCallback(async () => {
+    if (!enabled) return;
     setLoading(true);
     try {
       const [latestRes, historyRes] = await Promise.all([
@@ -76,15 +76,16 @@ export function useTrafficData() {
       });
       const latest = Array.from(latestMap.values());
       setLatestReadings(latest);
-      setRouteStats(buildRouteStats(latest));
     } catch (err) {
       console.error("[useTrafficData] Error:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     fetchInitialData();
     const socket = getSocket();
 
@@ -100,15 +101,18 @@ export function useTrafficData() {
           if (idx >= 0) updated[idx] = r;
           else updated.unshift(r);
         });
-        setRouteStats(buildRouteStats(updated));
         return updated;
       });
     });
 
     return () => {
       socket.off("traffic:new");
+      socket.off("connect");
+      socket.off("disconnect");
     };
-  }, [fetchInitialData]);
+  }, [fetchInitialData, enabled]);
+
+  const routeStats = useMemo(() => buildRouteStats(latestReadings), [latestReadings]);
 
   return { latestReadings, routeStats, history, connected, loading };
 }

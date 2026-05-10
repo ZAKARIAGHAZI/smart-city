@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { getSocket, disconnectSocket } from "@/lib/socket";
 import type { WaterReading, DistrictWater } from "@/lib/types";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://192.168.1.22:4000";
 
-export function useWaterData() {
+export function useWaterData(enabled: boolean = true) {
   const [latestReadings, setLatestReadings] = useState<WaterReading[]>([]);
-  const [districtStats, setDistrictStats] = useState<Map<string, DistrictWater>>(new Map());
   const [history, setHistory] = useState<{ time: string; flow: number }[]>([]);
   const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   const fetchInitialData = useCallback(async () => {
+    if (!enabled) return;
     setLoading(true);
     try {
       const [latestRes, statsRes, historyRes] = await Promise.all([
@@ -37,45 +37,16 @@ export function useWaterData() {
       });
       const latest = Array.from(latestMap.values());
       setLatestReadings(latest);
-
-      const statsMap = new Map<string, DistrictWater>();
-      latest.forEach(r => {
-        if (!r.district) return;
-        const existing = statsMap.get(r.district);
-        const flow = r.water_flow?.flow_rate_l_min || 0;
-        const vol = r.water_flow?.volume_l || 0;
-        const ph = r.water_quality?.ph || 7;
-
-        if (existing) {
-          const count = existing.sensor_count + 1;
-          statsMap.set(r.district, {
-            ...existing,
-            avg_flow: (existing.avg_flow * existing.sensor_count + flow) / count,
-            total_volume: existing.total_volume + vol,
-            avg_ph: (existing.avg_ph * existing.sensor_count + ph) / count,
-            sensor_count: count,
-          });
-        } else {
-          statsMap.set(r.district, {
-            district: r.district,
-            avg_flow: flow,
-            total_volume: vol,
-            avg_ph: ph,
-            avg_turbidity: r.water_quality?.turbidity_ntu || 0,
-            sensor_count: 1,
-            last_update: r.timestamp,
-          });
-        }
-      });
-      setDistrictStats(statsMap);
     } catch (err) {
       console.error("[useWaterData] Error:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     fetchInitialData();
     const socket = getSocket();
 
@@ -91,46 +62,53 @@ export function useWaterData() {
           if (idx >= 0) updated[idx] = r;
           else updated.unshift(r);
         });
-
-        const statsMap = new Map<string, DistrictWater>();
-        updated.forEach(r => {
-          if (!r.district) return;
-          const existing = statsMap.get(r.district);
-          const flow = r.water_flow?.flow_rate_l_min || 0;
-          const vol = r.water_flow?.volume_l || 0;
-          const ph = r.water_quality?.ph || 7;
-
-          if (existing) {
-            const count = existing.sensor_count + 1;
-            statsMap.set(r.district, {
-              ...existing,
-              avg_flow: (existing.avg_flow * existing.sensor_count + flow) / count,
-              total_volume: existing.total_volume + vol,
-              avg_ph: (existing.avg_ph * existing.sensor_count + ph) / count,
-              sensor_count: count,
-              last_update: r.timestamp > existing.last_update ? r.timestamp : existing.last_update,
-            });
-          } else {
-            statsMap.set(r.district, {
-              district: r.district,
-              avg_flow: flow,
-              total_volume: vol,
-              avg_ph: ph,
-              avg_turbidity: r.water_quality?.turbidity_ntu || 0,
-              sensor_count: 1,
-              last_update: r.timestamp,
-            });
-          }
-        });
-        setDistrictStats(statsMap);
         return updated;
       });
     });
 
     return () => {
       socket.off("water:new");
+      socket.off("connect");
+      socket.off("disconnect");
     };
-  }, [fetchInitialData]);
+  }, [fetchInitialData, enabled]);
+
+  const districtStats = useMemo(() => {
+    const statsMap = new Map<string, DistrictWater>();
+    latestReadings.forEach((r) => {
+      if (!r.district) return;
+      const existing = statsMap.get(r.district);
+      const flow = r.water_flow?.flow_rate_l_min || 0;
+      const vol = r.water_flow?.volume_l || 0;
+      const ph = r.water_quality?.ph || 7;
+
+      if (existing) {
+        const count = existing.sensor_count + 1;
+        statsMap.set(r.district, {
+          ...existing,
+          avg_flow: (existing.avg_flow * existing.sensor_count + flow) / count,
+          total_volume: existing.total_volume + vol,
+          avg_ph: (existing.avg_ph * existing.sensor_count + ph) / count,
+          sensor_count: count,
+          last_update:
+            r.timestamp > existing.last_update
+              ? r.timestamp
+              : existing.last_update,
+        });
+      } else {
+        statsMap.set(r.district, {
+          district: r.district,
+          avg_flow: flow,
+          total_volume: vol,
+          avg_ph: ph,
+          avg_turbidity: r.water_quality?.turbidity_ntu || 0,
+          sensor_count: 1,
+          last_update: r.timestamp,
+        });
+      }
+    });
+    return statsMap;
+  }, [latestReadings]);
 
   return { latestReadings, districtStats, history, connected, loading };
 }

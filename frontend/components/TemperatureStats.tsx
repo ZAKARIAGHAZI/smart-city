@@ -29,27 +29,28 @@ export default function TemperatureStats({
       : 0;
 
   const combinedHistory = useMemo(() => {
-    // 1. Take 23 fixed historical points
-    const fixedHistory = initialHistory.slice(0, 23).map((h) => {
-      const date = new Date(h.time);
-      const hours = date.getHours().toString().padStart(2, "0");
-      return {
-        time: `${hours}:00`,
-        value: h.temperature,
-        isLive: false,
-      };
-    });
+    // 1. Generate the last 24 hours slots (H-23 to H-0)
+    const now = new Date();
+    const timeline = [];
+    
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+      const hourStr = d.getHours().toString().padStart(2, "0") + ":00";
+      
+      // Find matching point in history
+      const match = initialHistory.find(h => {
+        const hDate = new Date(h.time);
+        return hDate.getHours() === d.getHours() && hDate.getDate() === d.getDate();
+      });
 
-    // 2. Add the 24th live point
-    const livePoint = {
-      time: "Direct",
-      value:
-        avgTemp ||
-        (initialHistory.length > 23 ? initialHistory[23].temperature : 0),
-      isLive: true,
-    };
+      timeline.push({
+        time: i === 0 ? "Direct" : hourStr,
+        value: i === 0 ? (avgTemp || (match ? match.temperature : 0)) : (match ? match.temperature : 0),
+        isLive: i === 0
+      });
+    }
 
-    return [...fixedHistory, livePoint];
+    return timeline;
   }, [initialHistory, avgTemp]);
 
   const totalSensors = districts.reduce((s, d) => s + d.sensor_count, 0);

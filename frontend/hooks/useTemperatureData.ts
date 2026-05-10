@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { getSocket, disconnectSocket } from "@/lib/socket";
 import type {
   TemperatureReading,
@@ -30,17 +30,17 @@ export interface UseTemperatureDataReturn {
   acknowledgeAlert: (id: string) => void;
 }
 
-export function useTemperatureData(): UseTemperatureDataReturn {
+export function useTemperatureData(enabled: boolean = true): UseTemperatureDataReturn {
   const [latestReadings, setLatestReadings] = useState<TemperatureReading[]>([]);
-  const [districtStats, setDistrictStats] = useState<Map<string, DistrictTemperature>>(new Map());
   const [alerts, setAlerts] = useState<TemperatureAlert[]>([]);
   const [history, setHistory] = useState<{ time: string; temperature: number; aqi: number }[]>([]);
   const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled); // Only loading if enabled
   const [error, setError] = useState<string | null>(null);
   const alertIdCounter = useRef(0);
 
   const fetchInitialData = useCallback(async () => {
+    if (!enabled) return;
     setLoading(true);
     setError(null);
     try {
@@ -68,41 +68,6 @@ export function useTemperatureData(): UseTemperatureDataReturn {
       const latestData = Array.from(latestDataMap.values());
       setLatestReadings(latestData);
 
-      const statsMap = new Map<string, DistrictTemperature>();
-      latestData.forEach((r) => {
-        if (!r.district) return;
-        const existing = statsMap.get(r.district);
-        const rTemp = Number(r.temperature);
-        const rAqi = r.air_quality?.aqi;
-
-        if (existing) {
-          const nextCount = existing.sensor_count + 1;
-          const nextAqi = rAqi !== undefined 
-            ? ((existing.avg_aqi || 0) * existing.sensor_count + rAqi) / nextCount
-            : existing.avg_aqi;
-
-          statsMap.set(r.district, {
-            ...existing,
-            avg_temperature: (existing.avg_temperature * existing.sensor_count + rTemp) / nextCount,
-            min_temperature: Math.min(existing.min_temperature, rTemp),
-            max_temperature: Math.max(existing.max_temperature, rTemp),
-            avg_aqi: nextAqi,
-            sensor_count: nextCount,
-          });
-        } else {
-          statsMap.set(r.district, {
-            district: r.district,
-            avg_temperature: rTemp,
-            min_temperature: rTemp,
-            max_temperature: rTemp,
-            avg_aqi: rAqi,
-            sensor_count: 1,
-            last_update: r.timestamp,
-          });
-        }
-      });
-      setDistrictStats(statsMap);
-
       const initialAlerts: TemperatureAlert[] = latestData
         .filter((r) => r.temperature >= 35)
         .map((r) => ({
@@ -121,9 +86,11 @@ export function useTemperatureData(): UseTemperatureDataReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     fetchInitialData();
     const socket = getSocket();
     socket.on("connect", () => setConnected(true));
@@ -139,42 +106,6 @@ export function useTemperatureData(): UseTemperatureDataReturn {
           const idx = updatedReadings.findIndex((r) => r.sensor_id === reading.sensor_id);
           if (idx >= 0) updatedReadings[idx] = reading;
           else updatedReadings.unshift(reading);
-        });
-
-        setDistrictStats(() => {
-          const statsMap = new Map<string, DistrictTemperature>();
-          updatedReadings.forEach((r) => {
-            if (!r.district) return;
-            const existing = statsMap.get(r.district);
-            const rTemp = Number(r.temperature);
-            const rAqi = r.air_quality?.aqi;
-            if (existing) {
-              const nextCount = existing.sensor_count + 1;
-              const nextAqi = rAqi !== undefined 
-                ? ((existing.avg_aqi || 0) * existing.sensor_count + rAqi) / nextCount
-                : existing.avg_aqi;
-              statsMap.set(r.district, {
-                ...existing,
-                avg_temperature: (existing.avg_temperature * existing.sensor_count + rTemp) / nextCount,
-                min_temperature: Math.min(existing.min_temperature, rTemp),
-                max_temperature: Math.max(existing.max_temperature, rTemp),
-                avg_aqi: nextAqi,
-                sensor_count: nextCount,
-                last_update: r.timestamp > existing.last_update ? r.timestamp : existing.last_update,
-              });
-            } else {
-              statsMap.set(r.district, {
-                district: r.district,
-                avg_temperature: rTemp,
-                min_temperature: rTemp,
-                max_temperature: rTemp,
-                avg_aqi: rAqi,
-                sensor_count: 1,
-                last_update: r.timestamp,
-              });
-            }
-          });
-          return statsMap;
         });
         return updatedReadings;
       });
@@ -210,9 +141,53 @@ export function useTemperatureData(): UseTemperatureDataReturn {
       socket.off("temperature:alert");
       socket.off("connect");
       socket.off("disconnect");
-      disconnectSocket();
     };
-  }, [fetchInitialData]);
+  }, [fetchInitialData, enabled]);
+
+  const districtStats = useMemo(() => {
+    const statsMap = new Map<string, DistrictTemperature>();
+    latestReadings.forEach((r) => {
+      if (!r.district) return;
+      const existing = statsMap.get(r.district);
+      const rTemp = Number(r.temperature);
+      const rAqi = r.air_quality?.aqi;
+
+      if (existing) {
+        const nextCount = existing.sensor_count + 1;
+        const nextAqi =
+          rAqi !== undefined
+            ? ((existing.avg_aqi || 0) * existing.sensor_count + rAqi) /
+              nextCount
+            : existing.avg_aqi;
+
+        statsMap.set(r.district, {
+          ...existing,
+          avg_temperature:
+            (existing.avg_temperature * existing.sensor_count + rTemp) /
+            nextCount,
+          min_temperature: Math.min(existing.min_temperature, rTemp),
+          max_temperature: Math.max(existing.max_temperature, rTemp),
+          avg_aqi: nextAqi,
+          sensor_count: nextCount,
+          last_update:
+            r.timestamp > existing.last_update
+              ? r.timestamp
+              : existing.last_update,
+        });
+      } else {
+        statsMap.set(r.district, {
+          district: r.district,
+          avg_temperature: rTemp,
+          min_temperature: rTemp,
+          max_temperature: rTemp,
+          avg_aqi: rAqi,
+          sensor_count: 1,
+          last_update: r.timestamp,
+        });
+      }
+    });
+    return statsMap;
+  }, [latestReadings]);
 
   const acknowledgeAlert = useCallback((id: string) => {
     setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, acknowledged: true } : a)));
